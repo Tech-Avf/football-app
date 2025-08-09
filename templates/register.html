@@ -25,9 +25,9 @@ textarea {
   top: 50%;
   left: 53.55%;
   transform: translate(-50%, -50%);
-  opacity: 0.1; /* Mờ nhẹ, không gây rối */
+  opacity: 0.1;
   z-index: 0;
-  pointer-events: none; /* Không làm ảnh hưởng tới thao tác người dùng */
+  pointer-events: none;
 }
 
 .watermark-logo img {
@@ -59,6 +59,12 @@ textarea {
     }
     .register-table tr:nth-child(even) { background-color: #f9f9f9; }
     .register-table tr:nth-child(odd) { background-color: #ffffff; }
+
+    /* ✅ Tránh cắt hàng khi xuất PDF */
+    .register-table tr {
+      page-break-inside: avoid;
+    }
+
     select, input { padding: 4px; font-size: 12px; width: 100%; box-sizing: border-box; }
     button { 
       background-color: #2196f3; 
@@ -82,7 +88,7 @@ textarea {
     .position-box.RB, .position-box.CB, .position-box.LB { background-color: #4CAF50; }
     .position-box.LM, .position-box.RM, .position-box.DM, .position-box.AM { background-color: #FFC107; }
     .position-box.ST, .position-box.CF, .position-box.SS, .position-box.LW, .position-box.RW { background-color: #F44336; }
-    .position-box.BHL { background-color: #d2691e; } /* Màu cam đất */ 
+    .position-box.BHL { background-color: #d2691e; }
      #toggle-coach { margin: 5px 0; }
     a { margin-top: 10px; display: inline-block; font-size: 12px; }
     .container { position: relative; padding-top: 40px; }
@@ -129,7 +135,6 @@ textarea {
 
       <form method="POST" id="register-form">
 
-        <!-- ✅ Nút Xuất PDF -->
         <div style="text-align: right; margin: 10px 5px;">
           <button type="button" onclick="exportToPDF()">📄 Xuất bảng đăng ký PDF</button>
         </div>
@@ -175,11 +180,11 @@ textarea {
                 </select>
               </td>
               <td>
-  <textarea name="reason_{{ pid }}" rows="1" oninput="autoResize(this)" class="auto-submit {% if locked or is_locked %}disabled{% endif %}" {% if locked or is_locked %}readonly{% endif %}>{{ pstatus.reason }}</textarea>
-</td>
-<td>
-  <textarea name="note_{{ pid }}" rows="1" oninput="autoResize(this)" class="auto-submit {% if locked or is_locked %}disabled{% endif %}" {% if locked or is_locked %}readonly{% endif %}>{% if is_late %}Trễ hạn đăng ký{% else %}{{ pstatus.note }}{% endif %}</textarea>
-</td>
+                <textarea name="reason_{{ pid }}" rows="1" oninput="autoResize(this)" class="auto-submit {% if locked or is_locked %}disabled{% endif %}" {% if locked or is_locked %}readonly{% endif %}>{{ pstatus.reason }}</textarea>
+              </td>
+              <td>
+                <textarea name="note_{{ pid }}" rows="1" oninput="autoResize(this)" class="auto-submit {% if locked or is_locked %}disabled{% endif %}" {% if locked or is_locked %}readonly{% endif %}>{% if is_late %}Trễ hạn đăng ký{% else %}{{ pstatus.note }}{% endif %}</textarea>
+              </td>
               {% if admin %}
               <td>
                 <form id="remove-form-{{ pid }}" method="POST" action="{{ url_for('remove_player_from_session', date=schedule.id, player_id=player.id) }}?admin=1"></form>
@@ -205,28 +210,25 @@ textarea {
     </div>
   </div>
 
-  <script>
+<script>
   document.addEventListener("DOMContentLoaded", function () {
-    // ✅ Giữ vị trí cuộn khi reload
     const savedScroll = localStorage.getItem('scrollPosition');
     if (savedScroll) {
       window.scrollTo(0, parseInt(savedScroll));
       localStorage.removeItem('scrollPosition');
     }
 
-    // ✅ Auto submit khi thay đổi trạng thái hoặc ghi chú/lý do
     document.querySelectorAll(".auto-submit").forEach(el => {
       el.addEventListener("change", () => {
-        localStorage.setItem('scrollPosition', window.scrollY);  // lưu vị trí
-        document.getElementById("register-form").submit();       // submit form
+        localStorage.setItem('scrollPosition', window.scrollY);
+        document.getElementById("register-form").submit();
       });
     });
 
-    // ⏳ Đếm ngược hạn chót
     const box = document.getElementById("deadline-box");
     const countdownEl = document.getElementById("countdown");
     const infoEl = document.getElementById("deadline-info");
-    const lockedAt = Number({{ locked_at_global | tojson }});  // ✅ Truyền đúng kiểu
+    const lockedAt = Number({{ locked_at_global | tojson }});
     const now = Number({{ now | tojson }});
     if (!lockedAt || isNaN(lockedAt) || !now || isNaN(now)) {
       countdownEl.textContent = "⚠️ Lỗi: Thời hạn không hợp lệ";
@@ -273,7 +275,6 @@ textarea {
     updateCountdown();
     setInterval(updateCountdown, 1000);
 
-    // ✅ Tính tổng người tham gia
     function countJoins() {
       let total = 0;
       document.querySelectorAll("select").forEach(el => {
@@ -285,25 +286,34 @@ textarea {
   });
 </script>
 
-  <!-- ✅ Thêm thư viện html2pdf và hàm export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script>
-    function exportToPDF() {
-      const element = document.querySelector('.content-wrapper');
-      const opt = {
-        margin: 0.2,
-        filename: 'Bảng đăng ký {{ schedule.date.replace("/", "-") }}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-      html2pdf().set(opt).from(element).save();
-    }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function exportToPDF() {
+  const watermark = document.querySelector('.watermark-logo');
+  const table = document.querySelector('.register-table');
+
+  if (watermark) watermark.style.display = 'none';
+  if (table) table.style.overflow = 'visible';
+
+  const element = document.querySelector('.content-wrapper');
+  const opt = {
+    margin: 0.2,
+    filename: 'Bảng đăng ký {{ schedule.date.replace("/", "-") }}.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(element).save().then(() => {
+    if (watermark) watermark.style.display = '';
+  });
+}
+
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = (el.scrollHeight) + 'px';
 }
 document.querySelectorAll("textarea").forEach(autoResize);
-  </script>
+</script>
 </body>
 </html>

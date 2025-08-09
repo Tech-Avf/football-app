@@ -121,9 +121,9 @@
     },
     {
       "id": 20,
-      "name": "VĂN NAM",
+      "name": "DUY CƯỜNG",
       "position": "LB",
-      "number": 36,
+      "number": 37,
       "order": 20
     },
     {
@@ -169,18 +169,11 @@
       "order": 26
     },
     {
-      "id": 27,
-      "name": "HIÉU (EI Ev En)",
-      "position": "GK,LB",
-      "number": 34,
-      "order": 27
-    },
-    {
       "id": 28,
       "name": "HOÀNG PHƯƠNG ⓥ",
       "position": "GK",
       "number": 23,
-      "order": 28
+      "order": 27
     },
     {
       "id": 29,
@@ -551,6 +544,178 @@
           "note": "",
           "reason": "",
           "locked_at": 1752466587.372929
+        }
+      }
+    },
+    {
+      "id": "2025-08-17",
+      "date": "2025-08-17",
+      "time": "08:00",
+      "field": "CÂY SỘP",
+      "map": "https://share.google/81BGrSoBZ2InKbSud",
+      "locked_at": 1754830800,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721261.7721562
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721263.7727807
+        },
+        "6": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721265.4459078
+        },
+        "8": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "7": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "9": {
+          "state": "busy",
+          "note": "",
+          "reason": "Làm ca đêm ra không đủ thể lực",
+          "locked_at": 1754721273.4290795
+        },
+        "10": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721274.9245167
+        },
+        "11": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721276.8289442
+        },
+        "12": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "13": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721279.1088665
+        },
+        "14": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721280.244565
+        },
+        "15": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721281.715715
+        },
+        "16": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721283.588609
+        },
+        "17": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721285.6614177
+        },
+        "3": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721286.6772535
+        },
+        "18": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721296.8943136
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721298.219708
+        },
+        "20": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721299.172076
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721300.228792
+        },
+        "21": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721301.2305007
+        },
+        "22": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721302.3081317
+        },
+        "24": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721303.3885581
+        },
+        "25": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721304.8530455
+        },
+        "26": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721307.2045732
+        },
+        "28": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721309.3807468
+        },
+        "29": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721272.3022325
+        },
+        "30": {
+          "state": "busy",
+          "note": "",
+          "reason": "Về quê có việc",
+          "locked_at": 1754721289.4613764
         }
       }
     }
