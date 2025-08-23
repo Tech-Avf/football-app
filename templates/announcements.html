@@ -86,22 +86,23 @@
       padding: 8px 16px;
       border-radius: 6px;
     }
+
     body::before {
-    content: "";
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    width: 1000px;
-    height: 1000px;
-    background-image: url("/static/images/logo.png");
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-    opacity: 0.1; /* bạn có thể tăng lên 0.15 hoặc 0.2 nếu muốn rõ hơn */
-    z-index: -1; /* thấp hơn mọi thứ */
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-}
+      content: "";
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 1000px;
+      height: 1000px;
+      background-image: url("/static/images/logo.png");
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: center;
+      opacity: 0.1;
+      z-index: -1;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -127,12 +128,21 @@
       <small>🗓️ {{ item.date }}</small><br>
 
       {% if is_admin %}
+        <!-- Toggle chạy nổi -->
         <form action="{{ url_for('toggle_banner', index=loop.index0) }}?admin=1" method="POST" style="display:inline;">
           <button type="submit" class="btn btn-warning">
-            {% if item.is_banner %}❌ Bỏ ghim nổi{% else %}🔝 Ghim chạy nổi{% endif %}
+            {% if item.is_scrolling %}❌ Bỏ ghim nổi{% else %}🔝 Ghim chạy nổi{% endif %}
           </button>
         </form>
 
+        <!-- Toggle popup -->
+        <form action="{{ url_for('toggle_popup', index=loop.index0) }}?admin=1" method="POST" style="display:inline;">
+          <button type="submit" class="btn btn-warning">
+            {% if item.is_popup %}❌ Bỏ popup{% else %}💬 Ghim popup{% endif %}
+          </button>
+        </form>
+
+        <!-- Xóa -->
         <form action="{{ url_for('delete_announcement', index=loop.index0) }}?admin=1" method="POST" style="display:inline;">
           <button type="submit" class="btn btn-danger">🗑️ Xóa</button>
         </form>

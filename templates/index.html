@@ -6,178 +6,104 @@
   <title>Đăng ký đá bóng</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-#floating-banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 9999;
-  background-color: transparent; /* hoàn toàn trong suốt */
-  pointer-events: none; /* không chặn thao tác người dùng */
-}
-
-#floating-banner .banner-content {
-  display: inline-block;
-  white-space: nowrap;
-  padding-left: 100%;
-  animation: scrollText 12s linear infinite;
-  font-size: 16px;
-  font-weight: bold;
-  color: #ff5722;
-  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
-}
-
-@keyframes scrollText {
-  0% {
-    transform: translateX(0%);
+  /* ---------------- BANNER NỔI ---------------- */
+  #floating-banner {
+    position: fixed; top: 0; left: 0; width: 100%;
+    z-index: 9999; background-color: transparent; pointer-events: none;
   }
-  100% {
-    transform: translateX(-100%);
+  #floating-banner .banner-content {
+    display: inline-block; white-space: nowrap; padding-left: 100%;
+    animation: scrollText 12s linear infinite;
+    font-size: 16px; font-weight: bold; color: #ff5722;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
   }
-}
+  @keyframes scrollText { 0%{transform:translateX(0%);} 100%{transform:translateX(-100%);} }
+  .floating-icon { margin-right: 10px; }
 
-.floating-icon {
-  margin-right: 10px;
-}
-
-@keyframes shake {
-  0% { transform: translate(0px, 0px); }
-  25% { transform: translate(2px, 1px); }
-  50% { transform: translate(-2px, -1px); }
-  75% { transform: translate(2px, -1px); }
-  100% { transform: translate(0px, 0px); }
-}
+  /* ---------------- NÚT ---------------- */
   .btn-about {
-    display: inline-block;
-    padding: 10px 16px;
-    background-color: #c62828;
-    color: #fff;
-    border-radius: 6px;
-    text-decoration: none;
+    display:inline-block; padding:10px 16px; background:#c62828; color:#fff;
+    border-radius:6px; text-decoration:none; font-weight:bold; margin:10px 0;
+    transition:background .3s;
+  }
+  .btn-about:hover { background:#b71c1c; }
+
+  /* ---------------- CARD CƠ BẢN ---------------- */
+  .schedule-card {
+    border:1px solid #ccc; border-radius:10px;
+    padding:12px 16px; margin:12px 0;
+    background:#f9f9f9;  /* là nền phía sau, không che gradient */
+    box-shadow:0 2px 5px rgba(0,0,0,.05);
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .schedule-card:hover { transform: scale(1.01); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+
+  .btn { display:inline-block; padding:6px 12px; background:#2196F3; color:#fff; text-decoration:none; border-radius:5px; font-size:14px; margin:5px 4px 0 0; }
+  .delete-btn { background:#f44336; }
+  .create-button { background:#4CAF50; color:#fff; text-decoration:none; padding:6px 12px; border-radius:5px; margin-right:8px; font-size:14px; }
+
+  /* ---------------- LOGO ---------------- */
+  .logo-top-right { position:absolute; top:24px; right:30%; z-index:1000; }
+  @media (max-width:768px){ .logo-top-right{ top:10px; right:10px; } }
+  .logo-img { max-width:100px; height:auto; }
+
+  /* ---------------- CONTAINER ---------------- */
+  .container { max-width:800px; margin:auto; padding:20px; }
+  h1 { margin-bottom:16px; }
+
+  /* ---------------- POPUP ---------------- */
+  .popup { display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.6); }
+  .popup-content { background:#fff; margin:15% auto; padding:20px; border-radius:10px; width:60%; max-width:500px; text-align:center; }
+  .popup button { margin-top:10px; padding:8px 16px; border:none; background:#2563eb; color:#fff; border-radius:5px; cursor:pointer; }
+
+  /* ---------------- CARD MỚI NHẤT (để CUỐI cùng để ưu tiên) ---------------- */
+  .newest {
+    /* lớp gradient chạy 1 lần */
+    background-image: linear-gradient(90deg, #ff8aaf, #d28eff, #ff8aaf);
+    background-size: 300% 100%;
+    background-position: 200% 0;
+    border: 2px solid #d63384;
     font-weight: bold;
-    margin: 10px 0;
-    transition: background 0.3s;
+    position: relative;
+    overflow: hidden;
+
+    /* 1) trượt gradient 2.5s  (both giữ lại trạng thái)
+       2) sau 2.5s đặt nền phẳng bằng animation giả lập 0s (forwards giữ nguyên) */
+    animation:
+      gradientSlide 2.5s ease-in-out 1 both,
+      setFlat 0s linear 2.5s forwards;
   }
 
-  .btn-about:hover {
-    background-color: #b71c1c;
+  /* nhãn “Mới nhất” lắc vô tận */
+  .newest::before {
+    content:"🔥 Mới nhất";
+    position:absolute; top:8px; right:8px;
+    background:#d63384; color:#fff;
+    padding:3px 8px; font-size:12px; border-radius:5px;
+    font-weight:bold; box-shadow:0 1px 4px rgba(0,0,0,.2); z-index:1;
+    animation: subtleShake 2s infinite ease-in-out;
   }
-    .newest {
-      background: linear-gradient(90deg, #ff8aaf, #d28eff, #ff8aaf);
-      background-size: 300% 100%;
-      animation: gradientSlide 2.5s ease-in-out forwards;
-      border: 2px solid #d63384;
-      font-weight: bold;
-      position: relative;
-      overflow: hidden;
-    }
 
-    .newest::before {
-  content: "🔥 Mới nhất";
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: #d63384;
-  color: white;
-  padding: 3px 8px;
-  font-size: 12px;
-  border-radius: 5px;
-  font-weight: bold;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  z-index: 1;
-}
-
-    @keyframes gradientSlide {
-      0% {
-        background-position: 200% 0;
-      }
-      100% {
-        background-position: 0% 0;
-        background: #fceff9; /* Nền hồng nhạt cố định sau hiệu ứng */
-      }
-    }
-
-    .schedule-card {
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin: 12px 0;
-      background-color: #f9f9f9;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .schedule-card:hover {
-      transform: scale(1.01);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 6px 12px;
-      background-color: #2196F3;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      font-size: 14px;
-      margin: 5px 4px 0 0;
-    }
-
-    .delete-btn {
-      background-color: #f44336;
-    }
-
-    .create-button {
-      background-color: #4CAF50;
-      color: white;
-      text-decoration: none;
-      padding: 6px 12px;
-      border-radius: 5px;
-      margin-right: 8px;
-      font-size: 14px;
-    }
-
-    .logo-top-right {
-  position: absolute;
-  top: 24px;
-  right: 30%;
-  z-index: 1000;
-}
-
-@media (max-width: 768px) {
-  .logo-top-right {
-    top: 10px;
-    right: 10px;
+  @keyframes gradientSlide {
+    from { background-position: 200% 0; }
+    to   { background-position:   0% 0; }
   }
-}
 
-    .logo-img {
-      max-width: 100px;
-      height: auto;
-    }
+  /* chuyển sang nền phẳng sau khi hiệu ứng kết thúc */
+  @keyframes setFlat {
+    to { background: #fceff9; }
+  }
 
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 16px;
-    }
-@keyframes subtleShake {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(1deg); }
-  50% { transform: rotate(-1deg); }
-  75% { transform: rotate(1deg); }
-}
-
-.newest::before {
-  animation: subtleShake 2s infinite ease-in-out;
-}
+  @keyframes subtleShake {
+    0%,100% { transform: rotate(0deg); }
+    25% { transform: rotate(1deg); }
+    50% { transform: rotate(-1deg); }
+    75% { transform: rotate(1deg); }
+  }
   </style>
 </head>
 <body>
+
 {% if banner_announcement %}
 <div id="floating-banner">
   <div class="banner-content">
@@ -186,40 +112,67 @@
   </div>
 </div>
 {% endif %}
-  <div class="logo-top-right">
-    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo-img">
+
+{% if popup_announcement %}
+<div id="popup" class="popup" data-key="{{ (popup_announcement.date ~ '-' ~ popup_announcement.title)|e }}">
+  <div class="popup-content">
+    <h2>📢 Thông báo quan trọng</h2>
+    <p>{{ popup_announcement.content }}</p>
+    <button onclick="closePopup()">Đã hiểu</button>
   </div>
-
-  <div class="container">
-    <h1>Danh sách các ngày thi đấu</h1>
-
-    {% if admin %}
-      <a href="{{ url_for('create') }}" class="create-button">➕ Thêm buổi đá mới</a>
-      <a href="{{ url_for('admin_players') }}" class="btn">👤 Quản lý thành viên</a>
-    {% endif %}
-<div style="margin: 12px 0;">
-  <a href="{{ url_for('static', filename='about.html') }}" class="btn-about">📘 Giới thiệu & Nội quy</a>
-  <a href="#" onclick="alert('📢 Chức năng đang trong quá trình phát triển, quay lại sau nhé!')" class="btn-about">📸 Thư viện đội bóng</a>
-  <a href="{{ url_for('announcements') }}" class="btn-about">📣 Kênh thông báo</a> <!-- Đã đổi class -->
 </div>
-    {% if schedules %}
-      {% for schedule in schedules %}
-        <div class="schedule-card {% if schedule.id == newest_id %}newest{% endif %}">
-          <h3>📅 {{ schedule.time }} | {{ format_date_with_weekday(schedule.date) }}</h3>
-          <p>🏟️ {{ schedule.field }} – <a href="{{ schedule.map }}" target="_blank">Xem bản đồ</a></p>
+<script>
+  (function(){
+    var el = document.getElementById("popup");
+    if(!el) return;
+    var key = "vp_ack_" + el.dataset.key;
+    if(localStorage.getItem(key) !== "1"){
+      el.style.display = "block";
+    }
+    window.closePopup = function(){
+      el.style.display = "none";
+      localStorage.setItem(key, "1");
+    }
+  })();
+</script>
+{% endif %}
 
-          <a href="{{ url_for('register', date=schedule.id) }}" class="btn">📄 Xem & Đăng ký</a>
+<div class="logo-top-right">
+  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo-img">
+</div>
 
-          {% if admin %}
-            <form method="POST" action="{{ url_for('delete_schedule', date=schedule.id) }}?admin=1" onsubmit="return confirm('Bạn có chắc muốn xoá buổi đá này không?')">
-              <button type="submit" class="btn delete-btn">🗑️ Xóa</button>
-            </form>
-          {% endif %}
-        </div>
-      {% endfor %}
-    {% else %}
-      <p>Hiện chưa có buổi đá nào được tạo.</p>
-    {% endif %}
+<div class="container">
+  <h1>Danh sách các ngày thi đấu</h1>
+
+  {% if admin %}
+    <a href="{{ url_for('create') }}" class="create-button">➕ Thêm buổi đá mới</a>
+    <a href="{{ url_for('admin_players') }}" class="btn">👤 Quản lý thành viên</a>
+  {% endif %}
+
+  <div style="margin: 12px 0;">
+    <a href="{{ url_for('static', filename='about.html') }}" class="btn-about">📘 Giới thiệu & Nội quy</a>
+    <a href="#" onclick="alert('📢 Chức năng đang trong quá trình phát triển, quay lại sau nhé!')" class="btn-about">📸 Thư viện đội bóng</a>
+    <a href="{{ url_for('announcements') }}" class="btn-about">📣 Kênh thông báo</a>
   </div>
+
+  {% if schedules %}
+    {% for schedule in schedules %}
+      <div class="schedule-card {% if schedule.id == newest_id %}newest{% endif %}">
+        <h3>📅 {{ schedule.time }} | {{ schedule.date | format_date_with_weekday }}</h3>
+        <p>🏟️ {{ schedule.field }} – <a href="{{ schedule.map }}" target="_blank">Xem bản đồ</a></p>
+
+        <a href="{{ url_for('register', date=schedule.id) }}" class="btn">📄 Xem & Đăng ký</a>
+
+        {% if admin %}
+          <form method="POST" action="{{ url_for('delete_schedule', date=schedule.id) }}?admin=1" onsubmit="return confirm('Bạn có chắc muốn xoá buổi đá này không?')">
+            <button type="submit" class="btn delete-btn">🗑️ Xóa</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>Hiện chưa có buổi đá nào được tạo.</p>
+  {% endif %}
+</div>
 </body>
 </html>

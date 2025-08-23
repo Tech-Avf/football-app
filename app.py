@@ -4,21 +4,23 @@ from datetime import datetime
 import pytz
 
 app = Flask(__name__)
+
 LOCK_DURATION = 60  # giây
 DB_FILE = "db.json"
-ANNOUNCE_FILE = 'data/announcements.json'
+ANNOUNCE_FILE = "data/announcements.json"
 
+# ================== UTILITIES ==================
 def load_announcements():
     if os.path.exists(ANNOUNCE_FILE):
-        with open(ANNOUNCE_FILE, 'r', encoding='utf-8') as f:
+        with open(ANNOUNCE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
 def save_announcements(data):
-    with open(ANNOUNCE_FILE, 'w', encoding='utf-8') as f:
+    with open(ANNOUNCE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# Kiểm tra và tạo db.json nếu chưa tồn tại
+# Bảo đảm db.json tồn tại
 if not os.path.exists(DB_FILE):
     initial_data = {
         "schedules": [],
@@ -47,7 +49,6 @@ def get_players_for_schedule(date):
     schedule = get_schedule(date)
     if not schedule:
         return []
-
     players = data["players"]
     result = []
     for p in players:
@@ -63,6 +64,44 @@ def get_players_for_schedule(date):
             })
     return result
 
+# ================== TEMPLATE FILTER & HELPERS ==================
+def _format_date_with_weekday(date_str: str) -> str:
+    """
+    Định dạng 'YYYY-MM-DD' -> 'Thứ ..., dd/mm/YYYY'
+    Không phụ thuộc locale hệ điều hành (tránh lỗi font).
+    """
+    if not date_str:
+        return ""
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        weekday_vi = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
+        return f"{weekday_vi[dt.weekday()]} | {dt.strftime('%d/%m/%Y')}"
+    except Exception:
+        return date_str
+
+# đăng ký filter
+app.jinja_env.filters["format_date_with_weekday"] = _format_date_with_weekday
+
+@app.context_processor
+def inject_helpers():
+    # Giữ helper cũ + đưa hàm format vào context cho template cũ gọi kiểu function nếu còn dùng
+    def get_line_color(pos):
+        if pos.startswith("CB") or pos in ["LB", "RB"]:
+            return "DEF"
+        elif pos in ["GK"]:
+            return "GK"
+        elif pos in ["CM", "LM", "RM", "DM", "AM"]:
+            return "MID"
+        elif pos in ["ST", "CF", "SS", "LW", "RW"]:
+            return "FWD"
+        else:
+            return ""
+    return dict(
+        get_line_color=get_line_color,
+        format_date_with_weekday=_format_date_with_weekday
+    )
+
+# ================== INDEX ==================
 @app.route("/")
 def index():
     data = load_data()
@@ -75,26 +114,30 @@ def index():
     )
     newest_id = sorted_schedules[0]["id"] if sorted_schedules else None
 
-    # ✅ THÊM: Load thông báo nổi bật
-    announcements = load_announcements()
-    banner_announcement = next((a for a in announcements if a.get("is_banner")), None)
+    # Thông báo: tách 2 loại
+    anns = load_announcements()
+    # tương thích ngược: nếu 'is_banner' có thì coi như is_scrolling
+    for a in anns:
+        if a.get("is_banner") and "is_scrolling" not in a:
+            a["is_scrolling"] = True
 
-    banner_announcement = None
-    all_announcements = load_announcements()
-    for ann in all_announcements:
-        if ann.get("is_banner"):
-            banner_announcement = ann
-            break
+    banner_announcement = next((a for a in anns if a.get("is_scrolling")), None)  # chạy nổi
+    popup_announcement  = next((a for a in anns if a.get("is_popup")), None)      # popup
 
     return render_template(
         "index.html",
         schedules=sorted_schedules,
         admin=admin_mode,
         newest_id=newest_id,
-        banner_announcement=banner_announcement
+        banner_announcement=banner_announcement,
+        popup_announcement=popup_announcement
     )
+
+# ================== REGISTER ==================
 @app.route("/register/<date>", methods=["GET", "POST"])
 def register(date):
+    import time as _time
+
     data = load_data()
     schedule = next((s for s in data["schedules"] if s["id"] == date), None)
     if not schedule:
@@ -104,20 +147,18 @@ def register(date):
     statuses = schedule["status"]
     admin_mode = request.args.get("admin") == "1"
     vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    now = time.time()
+    now = _time.time()
 
     locked_at_ts = schedule.get("locked_at", 0)
-
-    # Nếu có locked_at thì chuyển sang datetime có timezone
     if locked_at_ts:
         locked_at_utc = datetime.utcfromtimestamp(locked_at_ts).replace(tzinfo=pytz.utc)
         locked_at_vn = locked_at_utc.astimezone(vn_tz)
         locked_at_global = int(locked_at_vn.timestamp())
     else:
         locked_at_global = 0
-    
+
     is_locked = not admin_mode and now > locked_at_global
-         
+
     if request.method == "POST":
         for player in players:
             pid = str(player["id"])
@@ -125,23 +166,18 @@ def register(date):
             lock_time = current.get("locked_at", 0)
             is_player_locked = lock_time and (now - lock_time > LOCK_DURATION)
 
-            # Nếu không phải admin và đã bị khóa thì bỏ qua
             if not admin_mode and is_player_locked:
                 continue
 
-            # Lấy dữ liệu mới từ form
             state = request.form.get(f"state_{pid}", current.get("state", ""))
             note = request.form.get(f"note_{pid}", current.get("note", ""))
             reason = request.form.get(f"reason_{pid}", current.get("reason", ""))
 
-            # Nếu trạng thái thay đổi và chưa từng bị khóa, cập nhật locked_at
             if not admin_mode:
                 if state in ["join", "busy"]:
-                    # Nếu trước đó chưa bị khoá thì bắt đầu tính thời gian
                     if not lock_time:
                         lock_time = now
                 elif state == "":
-                    # Nếu chọn lại thành "chưa chọn", reset thời gian khoá
                     lock_time = 0
 
             statuses[pid] = {
@@ -155,10 +191,10 @@ def register(date):
         return redirect(url_for("register", date=date) + ("?admin=1" if admin_mode else ""))
 
     if locked_at_global:
-        locked_at_dt = datetime.fromtimestamp(locked_at_global).astimezone(vn_tz)
-        locked_datetime_str = locked_at_dt.strftime("%Y-%m-%d %H:%M")
+        locked_datetime_str = datetime.fromtimestamp(locked_at_global).astimezone(vn_tz).strftime("%Y-%m-%d %H:%M")
     else:
         locked_datetime_str = "Chưa đặt"
+
     return render_template(
         "register.html",
         players=players,
@@ -217,21 +253,21 @@ def add_player_to_session(date, player_id):
     save_data(data)
     return redirect(url_for("register", date=date) + "?admin=1")
 
+# ================== CREATE SCHEDULE ==================
 @app.route("/create", methods=["GET", "POST"])
 def create():
     data = load_data()
     if request.method == "POST":
         date = request.form.get("date")
         time_ = request.form.get("time")
-        field = request.form.get("location")       # ✅ khớp name="location"
-        map_link = request.form.get("map_link")    # ✅ khớp name="map_link"
+        field = request.form.get("location")
+        map_link = request.form.get("map_link")
         locked_at_str = request.form.get("locked_at")
 
         vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
         locked_at_naive = datetime.fromisoformat(locked_at_str)
         locked_at_local = vn_tz.localize(locked_at_naive)
-        locked_at = int(locked_at_local.astimezone(pytz.utc).timestamp())  # lưu UTC
-
+        locked_at = int(locked_at_local.astimezone(pytz.utc).timestamp())
 
         status = {
             str(player["id"]): {
@@ -257,6 +293,7 @@ def create():
 
     return render_template("create.html")
 
+# ================== ADMIN PLAYERS ==================
 @app.route("/admin/players", methods=["GET", "POST"])
 def admin_players():
     data = load_data()
@@ -277,11 +314,9 @@ def admin_players():
             })
 
         if request.form.get("new_name"):
-            # Tìm ID lớn nhất hiện có và tăng lên 1
             new_id = 1
             if updated_players:
                 new_id = max([p["id"] for p in updated_players]) + 1
-            
             new_player = {
                 "id": new_id,
                 "name": request.form["new_name"],
@@ -291,7 +326,6 @@ def admin_players():
             }
             updated_players.append(new_player)
 
-            # Thêm cầu thủ mới vào tất cả các lịch trình hiện có
             for schedule in data["schedules"]:
                 schedule["status"][str(new_id)] = {
                     "state": "",
@@ -306,17 +340,18 @@ def admin_players():
 
     return render_template("admin_players.html", players=players)
 
+# ================== DELETE SCHEDULE ==================
 @app.route("/delete/<date>", methods=["POST"])
 def delete_schedule(date):
     admin_mode = request.args.get("admin") == "1"
     if not admin_mode:
         return "Không có quyền xoá", 403
-
     data = load_data()
     data["schedules"] = [s for s in data["schedules"] if s["id"] != date]
     save_data(data)
     return redirect(url_for("index") + "?admin=1")
 
+# ================== COACH MODE ==================
 @app.route("/coach/<date>")
 def coach_mode(date):
     schedule = get_schedule(date)
@@ -327,16 +362,13 @@ def coach_mode(date):
     players = data["players"]
     statuses = schedule.get("status", {})
 
-    # Lấy những người tham gia
     joined_players = [
         p for p in players
         if str(p["id"]) in statuses and statuses[str(p["id"])]["state"] == "join"
     ]
 
-    # Gom theo vị trí
     players_by_position = {}
     for player in joined_players:
-        # Đảm bảo position không rỗng để tránh lỗi split
         if player.get("position"):
             for pos in player["position"].split(","):
                 pos = pos.strip().upper()
@@ -351,79 +383,71 @@ def coach_mode(date):
         "coach_mode.html",
         schedule=schedule,
         players_by_position=players_by_position,
-        all_joined_players=joined_players # THÊM DÒNG NÀY ĐỂ TRUYỀN TẤT CẢ NGƯỜI CHƠI ĐÃ THAM GIA
+        all_joined_players=joined_players
     )
-@app.context_processor
-def inject_helpers():
-    def get_line_color(pos):
-        if pos.startswith("CB") or pos in ["LB", "RB"]:
-            return "DEF"
-        elif pos in ["GK"]:
-            return "GK"
-        elif pos in ["CM", "LM", "RM", "DM", "AM"]:
-            return "MID"
-        elif pos in ["ST", "CF", "SS", "LW", "RW"]:
-            return "FWD"
-        else:
-            return ""
 
-    def format_date_with_weekday(date_str):
-        try:
-            dt = datetime.strptime(date_str, "%Y-%m-%d")
-            weekday_vi = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
-            weekday = weekday_vi[dt.weekday()]
-            return f"{weekday} | {dt.strftime('%d-%m-%Y')}"
-        except:
-            return date_str
-
-    return dict(get_line_color=get_line_color, format_date_with_weekday=format_date_with_weekday)
+# ================== STATIC PAGES ==================
 @app.route("/about.html")
 def about():
     return render_template("about.html")
+
+# ================== ANNOUNCEMENTS (LIST) ==================
 @app.route('/announcements')
 def announcements():
-    announcements = load_announcements()
+    anns = load_announcements()
     is_admin = request.args.get('admin') == '1'
-    return render_template('announcements.html', announcements=announcements, is_admin=is_admin)
+    return render_template('announcements.html', announcements=anns, is_admin=is_admin)
+
 @app.route('/add_announcement', methods=['POST'])
 def add_announcement():
     if request.args.get('admin') != '1':
         return "Không có quyền", 403
 
-    announcements = load_announcements()
+    anns = load_announcements()
     new_item = {
         "title": request.form['title'],
         "content": request.form['content'],
         "date": datetime.now().strftime("%d/%m/%Y"),
-        "is_banner": 'is_banner' in request.form
+        # hai tuỳ chọn mới
+        "is_scrolling": ('is_scrolling' in request.form) or ('is_banner' in request.form),  # tương thích ngược
+        "is_popup": 'is_popup' in request.form
     }
-    announcements.insert(0, new_item)
-    save_announcements(announcements)
+    anns.insert(0, new_item)
+    save_announcements(anns)
     return redirect(url_for('announcements', admin=1))
 
 @app.route('/delete_announcement/<int:index>', methods=['POST'])
 def delete_announcement(index):
     if request.args.get('admin') != '1':
         return "Không có quyền", 403
-
-    announcements = load_announcements()
-    if 0 <= index < len(announcements):
-        del announcements[index]
-        save_announcements(announcements)
+    anns = load_announcements()
+    if 0 <= index < len(anns):
+        del anns[index]
+        save_announcements(anns)
     return redirect(url_for('announcements', admin=1))
+
 @app.route('/toggle_banner/<int:index>', methods=['POST'])
 def toggle_banner(index):
+    """Giữ tương thích: toggle 'is_scrolling' (trước đây là is_banner)."""
     if request.args.get('admin') != '1':
         return "Không có quyền", 403
-
-    announcements = load_announcements()
-    if 0 <= index < len(announcements):
-        # Đảo trạng thái ghim nổi
-        announcements[index]['is_banner'] = not announcements[index].get('is_banner', False)
-        save_announcements(announcements)
-
+    anns = load_announcements()
+    if 0 <= index < len(anns):
+        anns[index]['is_scrolling'] = not anns[index].get('is_scrolling', False)
+        save_announcements(anns)
     return redirect(url_for('announcements', admin=1))
-# Route để lấy đội hình theo ngày thi đấu
+
+@app.route('/toggle_popup/<int:index>', methods=['POST'])
+def toggle_popup(index):
+    if request.args.get('admin') != '1':
+        return "Không có quyền", 403
+    anns = load_announcements()
+    if 0 <= index < len(anns):
+        anns[index]['is_popup'] = not anns[index].get('is_popup', False)
+        save_announcements(anns)
+    return redirect(url_for('announcements', admin=1))
+
+# ================== LINEUP ==================
 @app.route('/get_lineup/<schedule_id>')
 def get_lineup(schedule_id):
     with open('db.json', 'r', encoding='utf-8') as f:
@@ -431,21 +455,17 @@ def get_lineup(schedule_id):
     lineup = data.get('lineups', {}).get(schedule_id, {})
     return jsonify(lineup)
 
-# Route để lưu đội hình
 @app.route('/save_lineup/<schedule_id>', methods=['POST'])
 def save_lineup(schedule_id):
     lineup_data = request.json
     with open('db.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
-
     if 'lineups' not in data:
         data['lineups'] = {}
-
     data['lineups'][schedule_id] = lineup_data
-
     with open('db.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
     return jsonify({'status': 'ok'})
+
 if __name__ == "__main__":
     app.run(debug=True)

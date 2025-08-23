@@ -574,19 +574,19 @@
           "locked_at": 1754721265.4459078
         },
         "8": {
-          "state": "",
-          "note": "",
+          "state": "busy",
+          "note": "Trễ hạn đăng ký",
           "reason": "",
           "locked_at": 0
         },
         "7": {
-          "state": "",
-          "note": "",
+          "state": "busy",
+          "note": "Trễ hạn đăng ký",
           "reason": "",
           "locked_at": 0
         },
         "9": {
-          "state": "busy",
+          "state": "join",
           "note": "",
           "reason": "Làm ca đêm ra không đủ thể lực",
           "locked_at": 1754721273.4290795
@@ -604,7 +604,7 @@
           "locked_at": 1754721276.8289442
         },
         "12": {
-          "state": "",
+          "state": "join",
           "note": "",
           "reason": "",
           "locked_at": 0
