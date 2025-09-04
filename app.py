@@ -2,6 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import json, os, time
 from datetime import datetime
 import pytz
+import os
+import requests
+import base64
+from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 
@@ -466,6 +471,44 @@ def save_lineup(schedule_id):
     with open('db.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     return jsonify({'status': 'ok'})
+# ================== BACKUP TO GITHUB ==================
+GITHUB_REPO = "Thanh-thuc/football-app"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # sẽ set env trên Render
 
+def backup_to_github():
+    try:
+        with open(DB_FILE, "rb") as f:
+            content = f.read()
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"backup/db_{timestamp}.json"
+
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{backup_filename}"
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        data = {
+            "message": f"Backup db.json at {timestamp}",
+            "content": base64.b64encode(content).decode("utf-8")
+        }
+
+        response = requests.put(url, headers=headers, json=data)
+        print("Backup response:", response.json())
+
+    except Exception as e:
+        print("Backup failed:", e)
+
+
+def start_scheduler():
+    scheduler = BackgroundScheduler()
+    # backup mỗi ngày lúc 2h sáng
+    scheduler.add_job(func=backup_to_github, trigger="cron", hour=2, minute=0)
+    scheduler.start()
+
+    import atexit
+    atexit.register(lambda: scheduler.shutdown(wait=False))
+start_scheduler()
 if __name__ == "__main__":
+    # khởi động scheduler khi Flask app chạy
     app.run(debug=True)
