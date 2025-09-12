@@ -509,6 +509,9 @@ def start_scheduler():
     import atexit
     atexit.register(lambda: scheduler.shutdown(wait=False))
 start_scheduler()
+@app.route("/ping")
+def ping():
+    return "OK", 200
 if __name__ == "__main__":
     # khởi động scheduler khi Flask app chạy
     app.run(debug=True)
