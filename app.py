@@ -1,20 +1,23 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-import json, os, time
+import json, os, time, base64, requests, threading
 from datetime import datetime
 import pytz
-import os
-import requests
-import base64
-from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
+
+# --- Google Drive utils ---
+from gdrive_utils import download_db, upload_db
 
 app = Flask(__name__)
 
+# ================== CONFIG ==================
 LOCK_DURATION = 60  # giây
 DB_FILE = "db.json"
 ANNOUNCE_FILE = "data/announcements.json"
 
-# ================== UTILITIES ==================
+GITHUB_REPO = "Thanh-thuc/football-app"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+# ================== ANNOUNCEMENTS UTILS ==================
 def load_announcements():
     if os.path.exists(ANNOUNCE_FILE):
         with open(ANNOUNCE_FILE, "r", encoding="utf-8") as f:
@@ -22,25 +25,81 @@ def load_announcements():
     return []
 
 def save_announcements(data):
+    os.makedirs(os.path.dirname(ANNOUNCE_FILE), exist_ok=True)
     with open(ANNOUNCE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# Bảo đảm db.json tồn tại
+# ================== LOCAL DB FALLBACK ==================
 if not os.path.exists(DB_FILE):
-    initial_data = {
-        "schedules": [],
-        "players": []
-    }
+    initial_data = {"schedules": [], "players": []}
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(initial_data, f, ensure_ascii=False, indent=2)
 
+# ================== DB LAYER ==================
 def load_data():
-    with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """
+    Local-first:
+    - Nếu có file local db.json => trả data ngay (đảm bảo UI phản hồi tức thì).
+    - Nếu local không có hoặc đọc lỗi => thử download từ Google Drive và lưu local.
+    """
+    # 1) Try local first
+    try:
+        if os.path.exists(DB_FILE):
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    data.setdefault("schedules", [])
+                    data.setdefault("players", [])
+                    return data
+    except Exception as e:
+        # đọc local lỗi -> tiếp tục thử Drive
+        print("load_data: read local failed:", e)
+
+    # 2) Fallback -> try Google Drive (and cache to local if ok)
+    try:
+        data = download_db()
+        if isinstance(data, dict):
+            data.setdefault("schedules", [])
+            data.setdefault("players", [])
+            # Cache to local for next requests
+            try:
+                with open(DB_FILE, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            except Exception as ex:
+                print("load_data: failed to write cache local:", ex)
+            return data
+    except Exception as e:
+        print("load_data: download_db failed:", e)
+
+    # 3) Last resort: minimal structure
+    return {"schedules": [], "players": []}
 
 def save_data(data):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    """
+    Song song: luôn lưu local ngay, sau đó upload Drive trong thread nền.
+    Nếu upload fail thì retry sau 1 phút (1 lần).
+    """
+    # 1. Save local trước
+    try:
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Save local failed:", e)
+
+    # 2. Upload Drive nền
+    def _upload(retry=False):
+        try:
+            upload_db(data)
+            print("Drive upload success")
+        except Exception as e:
+            print("Drive upload failed:", e)
+            if not retry:
+                # Retry sau 60s
+                def _retry():
+                    _upload(retry=True)
+                threading.Timer(60, _retry).start()
+
+    threading.Thread(target=_upload, daemon=True).start()
 
 def get_schedule(date):
     data = load_data()
@@ -54,9 +113,8 @@ def get_players_for_schedule(date):
     schedule = get_schedule(date)
     if not schedule:
         return []
-    players = data["players"]
     result = []
-    for p in players:
+    for p in data["players"]:
         pid = str(p["id"])
         status = schedule["status"].get(pid)
         if status:
@@ -69,27 +127,23 @@ def get_players_for_schedule(date):
             })
     return result
 
-# ================== TEMPLATE FILTER & HELPERS ==================
+# ================== TEMPLATE HELPERS ==================
 def _format_date_with_weekday(date_str: str) -> str:
-    """
-    Định dạng 'YYYY-MM-DD' -> 'Thứ ..., dd/mm/YYYY'
-    Không phụ thuộc locale hệ điều hành (tránh lỗi font).
-    """
+    """Định dạng YYYY-MM-DD -> Thứ ..., dd/mm/YYYY"""
     if not date_str:
         return ""
     try:
         dt = datetime.strptime(date_str, "%Y-%m-%d")
-        weekday_vi = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
+        weekday_vi = ["Thứ Hai", "Thứ Ba", "Thứ Tư",
+                      "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
         return f"{weekday_vi[dt.weekday()]} | {dt.strftime('%d/%m/%Y')}"
     except Exception:
         return date_str
 
-# đăng ký filter
 app.jinja_env.filters["format_date_with_weekday"] = _format_date_with_weekday
 
 @app.context_processor
 def inject_helpers():
-    # Giữ helper cũ + đưa hàm format vào context cho template cũ gọi kiểu function nếu còn dùng
     def get_line_color(pos):
         if pos.startswith("CB") or pos in ["LB", "RB"]:
             return "DEF"
@@ -99,35 +153,36 @@ def inject_helpers():
             return "MID"
         elif pos in ["ST", "CF", "SS", "LW", "RW"]:
             return "FWD"
-        else:
-            return ""
+        return ""
     return dict(
         get_line_color=get_line_color,
         format_date_with_weekday=_format_date_with_weekday
     )
 
-# ================== INDEX ==================
+# ================== ROUTES ==================
+
+# INDEX
 @app.route("/")
 def index():
     data = load_data()
     admin_mode = request.args.get("admin") == "1"
 
     sorted_schedules = sorted(
-        data["schedules"],
-        key=lambda s: datetime.strptime(f"{s['date']} {s['time']}", "%Y-%m-%d %H:%M"),
+        data.get("schedules", []),
+        key=lambda s: datetime.strptime(
+            f"{s['date']} {s['time']}", "%Y-%m-%d %H:%M"
+        ) if s.get("date") and s.get("time") else datetime.min,
         reverse=True
     )
     newest_id = sorted_schedules[0]["id"] if sorted_schedules else None
 
-    # Thông báo: tách 2 loại
     anns = load_announcements()
-    # tương thích ngược: nếu 'is_banner' có thì coi như is_scrolling
     for a in anns:
         if a.get("is_banner") and "is_scrolling" not in a:
             a["is_scrolling"] = True
 
-    banner_announcement = next((a for a in anns if a.get("is_scrolling")), None)  # chạy nổi
-    popup_announcement  = next((a for a in anns if a.get("is_popup")), None)      # popup
+    banner_announcement = next((a for a in anns if a.get("is_scrolling")), None)
+    popup_announcement = next((a for a in anns if a.get("is_popup")), None)
 
     return render_template(
         "index.html",
@@ -148,8 +203,8 @@ def register(date):
     if not schedule:
         return f"Không tìm thấy ngày {date}", 404
 
-    players = sorted(data["players"], key=lambda p: p["order"])
-    statuses = schedule["status"]
+    players = sorted(data.get("players", []), key=lambda p: p.get("order", 0))
+    statuses = schedule.setdefault("status", {})   # ensure dict and modify in-place
     admin_mode = request.args.get("admin") == "1"
     vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
     now = _time.time()
@@ -192,6 +247,8 @@ def register(date):
                 "locked_at": lock_time or 0
             }
 
+        # update in-memory schedule and save (local immediate + drive async)
+        schedule["status"] = statuses
         save_data(data)
         return redirect(url_for("register", date=date) + ("?admin=1" if admin_mode else ""))
 
@@ -225,7 +282,7 @@ def remove_player_from_session(date, player_id):
         return f"Không tìm thấy buổi đá {date}", 404
 
     pid = str(player_id)
-    if pid in schedule["status"]:
+    if pid in schedule.get("status", {}):
         del schedule["status"][pid]
 
     save_data(data)
@@ -238,7 +295,7 @@ def add_player_to_session(date, player_id):
         return "Không có quyền thêm", 403
 
     data = load_data()
-    player = next((p for p in data["players"] if p["id"] == player_id), None)
+    player = next((p for p in data.get("players", []) if p["id"] == player_id), None)
     if not player:
         return f"Không tìm thấy cầu thủ", 404
 
@@ -247,8 +304,8 @@ def add_player_to_session(date, player_id):
         return f"Không tìm thấy buổi đá", 404
 
     pid = str(player_id)
-    if pid not in schedule["status"]:
-        schedule["status"][pid] = {
+    if pid not in schedule.get("status", {}):
+        schedule.setdefault("status", {})[pid] = {
             "state": "",
             "note": "",
             "reason": "",
@@ -280,7 +337,7 @@ def create():
                 "note": "",
                 "reason": "",
                 "locked_at": 0
-            } for player in data["players"]
+            } for player in data.get("players", [])
         }
 
         data["schedules"].append({
@@ -302,7 +359,7 @@ def create():
 @app.route("/admin/players", methods=["GET", "POST"])
 def admin_players():
     data = load_data()
-    players = data["players"]
+    players = data.get("players", [])
 
     if request.method == "POST":
         updated_players = []
@@ -331,8 +388,8 @@ def admin_players():
             }
             updated_players.append(new_player)
 
-            for schedule in data["schedules"]:
-                schedule["status"][str(new_id)] = {
+            for schedule in data.get("schedules", []):
+                schedule.setdefault("status", {})[str(new_id)] = {
                     "state": "",
                     "note": "",
                     "reason": "",
@@ -352,7 +409,7 @@ def delete_schedule(date):
     if not admin_mode:
         return "Không có quyền xoá", 403
     data = load_data()
-    data["schedules"] = [s for s in data["schedules"] if s["id"] != date]
+    data["schedules"] = [s for s in data.get("schedules", []) if s["id"] != date]
     save_data(data)
     return redirect(url_for("index") + "?admin=1")
 
@@ -364,12 +421,12 @@ def coach_mode(date):
         return "Không tìm thấy buổi đá", 404
 
     data = load_data()
-    players = data["players"]
+    players = data.get("players", [])
     statuses = schedule.get("status", {})
 
     joined_players = [
         p for p in players
-        if str(p["id"]) in statuses and statuses[str(p["id"])]["state"] == "join"
+        if str(p["id"]) in statuses and statuses[str(p["id"])].get("state") == "join"
     ]
 
     players_by_position = {}
@@ -396,7 +453,7 @@ def coach_mode(date):
 def about():
     return render_template("about.html")
 
-# ================== ANNOUNCEMENTS (LIST) ==================
+# ================== ANNOUNCEMENTS ==================
 @app.route('/announcements')
 def announcements():
     anns = load_announcements()
@@ -413,8 +470,7 @@ def add_announcement():
         "title": request.form['title'],
         "content": request.form['content'],
         "date": datetime.now().strftime("%d/%m/%Y"),
-        # hai tuỳ chọn mới
-        "is_scrolling": ('is_scrolling' in request.form) or ('is_banner' in request.form),  # tương thích ngược
+        "is_scrolling": ('is_scrolling' in request.form) or ('is_banner' in request.form),
         "is_popup": 'is_popup' in request.form
     }
     anns.insert(0, new_item)
@@ -433,7 +489,6 @@ def delete_announcement(index):
 
 @app.route('/toggle_banner/<int:index>', methods=['POST'])
 def toggle_banner(index):
-    """Giữ tương thích: toggle 'is_scrolling' (trước đây là is_banner)."""
     if request.args.get('admin') != '1':
         return "Không có quyền", 403
     anns = load_announcements()
@@ -455,30 +510,25 @@ def toggle_popup(index):
 # ================== LINEUP ==================
 @app.route('/get_lineup/<schedule_id>')
 def get_lineup(schedule_id):
-    with open('db.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    data = load_data()
     lineup = data.get('lineups', {}).get(schedule_id, {})
     return jsonify(lineup)
 
 @app.route('/save_lineup/<schedule_id>', methods=['POST'])
 def save_lineup(schedule_id):
     lineup_data = request.json
-    with open('db.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    data = load_data()
     if 'lineups' not in data:
         data['lineups'] = {}
     data['lineups'][schedule_id] = lineup_data
-    with open('db.json', 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    save_data(data)
     return jsonify({'status': 'ok'})
-# ================== BACKUP TO GITHUB ==================
-GITHUB_REPO = "Thanh-thuc/football-app"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # sẽ set env trên Render
 
+# ================== BACKUP TO GITHUB ==================
 def backup_to_github():
     try:
-        with open(DB_FILE, "rb") as f:
-            content = f.read()
+        data = load_data()
+        content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_filename = f"backup/db_{timestamp}.json"
@@ -488,30 +538,29 @@ def backup_to_github():
             "Authorization": f"token {GITHUB_TOKEN}",
             "Accept": "application/vnd.github.v3+json"
         }
-        data = {
+        payload = {
             "message": f"Backup db.json at {timestamp}",
             "content": base64.b64encode(content).decode("utf-8")
         }
 
-        response = requests.put(url, headers=headers, json=data)
+        response = requests.put(url, headers=headers, json=payload)
         print("Backup response:", response.json())
-
     except Exception as e:
         print("Backup failed:", e)
 
-
 def start_scheduler():
     scheduler = BackgroundScheduler()
-    # backup mỗi ngày lúc 2h sáng
     scheduler.add_job(func=backup_to_github, trigger="cron", hour=2, minute=0)
     scheduler.start()
 
     import atexit
     atexit.register(lambda: scheduler.shutdown(wait=False))
+
 start_scheduler()
+
 @app.route("/ping")
 def ping():
     return "OK", 200
+
 if __name__ == "__main__":
-    # khởi động scheduler khi Flask app chạy
     app.run(debug=True)
