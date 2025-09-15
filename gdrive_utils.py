@@ -1,13 +1,14 @@
 # gdrive_utils.py
 import io
+import os
 import datetime
 import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from google.oauth2 import service_account
 
-# Đường dẫn tới service_account.json (bạn đã lưu ngoài thư mục code)
-SERVICE_ACCOUNT_FILE = r"C:\Users\ADMIN\Desktop\Secondary Work\KEY GG API\service_account.json"
+# Lấy JSON credential từ biến môi trường
+SERVICE_ACCOUNT_INFO = os.getenv("SERVICE_ACCOUNT_JSON")
 
 # Scope để thao tác với Google Drive
 SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -18,14 +19,14 @@ FOLDER_ID = "1tz_cbi6LLu2eCXZI54HtNM3dg-94SuVx"
 # Tên file db.json trên Google Drive
 FILE_NAME = "db.json"
 
-
 def get_drive_service():
-    """Tạo service kết nối Google Drive."""
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES
-    )
+    """Tạo service kết nối Google Drive từ JSON trong biến môi trường."""
+    if not SERVICE_ACCOUNT_INFO:
+        raise ValueError("SERVICE_ACCOUNT_JSON chưa được thiết lập trong Environment Variables.")
+    
+    info = json.loads(SERVICE_ACCOUNT_INFO)  # convert string -> dict
+    creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
     return build("drive", "v3", credentials=creds)
-
 
 def get_file_id(service):
     """Lấy ID của file db.json trong folder Drive."""
@@ -35,7 +36,6 @@ def get_file_id(service):
     if not files:
         return None
     return files[0]["id"]
-
 
 def download_db():
     """Tải db.json từ Google Drive về (trả về dict)."""
@@ -54,10 +54,8 @@ def download_db():
     fh.seek(0)
     return json.load(fh)
 
-
 def upload_db(data):
     """Ghi dict data -> db.json lên Google Drive, kèm last_update."""
-    
     # 1. Thêm timestamp vào dict
     data['last_update'] = datetime.datetime.utcnow().isoformat()
     
