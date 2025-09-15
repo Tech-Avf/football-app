@@ -1,5 +1,6 @@
 # gdrive_utils.py
 import io
+import datetime
 import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
@@ -55,13 +56,20 @@ def download_db():
 
 
 def upload_db(data):
-    """Ghi dict data -> db.json lên Google Drive."""
+    """Ghi dict data -> db.json lên Google Drive, kèm last_update."""
+    
+    # 1. Thêm timestamp vào dict
+    data['last_update'] = datetime.datetime.utcnow().isoformat()
+    
+    # 2. Tạo service & lấy file_id
     service = get_drive_service()
     file_id = get_file_id(service)
 
+    # 3. Chuẩn bị file media
     fh = io.BytesIO(json.dumps(data, indent=2).encode("utf-8"))
     media = MediaIoBaseUpload(fh, mimetype="application/json")
 
+    # 4. Upload: update nếu file đã tồn tại, create nếu chưa
     if file_id:
         service.files().update(fileId=file_id, media_body=media).execute()
     else:
