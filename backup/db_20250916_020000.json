@@ -1,0 +1,1070 @@
+{
+  "players": [
+    {
+      "id": 4,
+      "name": "TRIEU NGUYEN",
+      "position": "GK,CLUB OWNER",
+      "number": 3,
+      "order": 1
+    },
+    {
+      "id": 5,
+      "name": "THANH TUẤN",
+      "position": "COACH",
+      "number": 18,
+      "order": 2
+    },
+    {
+      "id": 6,
+      "name": "DUY NGUYEN",
+      "position": "ST",
+      "number": 7,
+      "order": 3
+    },
+    {
+      "id": 8,
+      "name": "CÔNG VĂN",
+      "position": "BHL",
+      "number": 2,
+      "order": 4
+    },
+    {
+      "id": 7,
+      "name": "QUỐC HOÀ",
+      "position": "BHL",
+      "number": 66,
+      "order": 5
+    },
+    {
+      "id": 9,
+      "name": "VIẾT LỘC",
+      "position": "DM",
+      "number": 6,
+      "order": 7
+    },
+    {
+      "id": 10,
+      "name": "QUANG NHÂN",
+      "position": "AM",
+      "number": 8,
+      "order": 8
+    },
+    {
+      "id": 11,
+      "name": "XUÂN HIẾU",
+      "position": "RM",
+      "number": 9,
+      "order": 9
+    },
+    {
+      "id": 12,
+      "name": "VĂN KHẢI",
+      "position": "ST",
+      "number": 10,
+      "order": 10
+    },
+    {
+      "id": 13,
+      "name": "NGỌC SƠN ⓥ",
+      "position": "CB",
+      "number": 11,
+      "order": 11
+    },
+    {
+      "id": 14,
+      "name": "DUY TÂN",
+      "position": "LB",
+      "number": 12,
+      "order": 12
+    },
+    {
+      "id": 15,
+      "name": "CHÍ THÀNH",
+      "position": "RB",
+      "number": 15,
+      "order": 13
+    },
+    {
+      "id": 16,
+      "name": "NHÂN (FAN MESSI)",
+      "position": "AM",
+      "number": 16,
+      "order": 14
+    },
+    {
+      "id": 17,
+      "name": "NGỌC GIAI",
+      "position": "LM",
+      "number": 17,
+      "order": 15
+    },
+    {
+      "id": 3,
+      "name": "THÀNH THỨC",
+      "position": "RB",
+      "number": 19,
+      "order": 16
+    },
+    {
+      "id": 18,
+      "name": "TUẤN LẬP",
+      "position": "LW",
+      "number": 33,
+      "order": 18
+    },
+    {
+      "id": 19,
+      "name": "VĂN ĐÔNG",
+      "position": "AM",
+      "number": 35,
+      "order": 19
+    },
+    {
+      "id": 20,
+      "name": "DUY CƯỜNG",
+      "position": "LB",
+      "number": 37,
+      "order": 20
+    },
+    {
+      "id": 23,
+      "name": "NHẬT TÂN",
+      "position": "RM",
+      "number": 74,
+      "order": 21
+    },
+    {
+      "id": 21,
+      "name": "MINH HOÀ",
+      "position": "DM",
+      "number": 39,
+      "order": 22
+    },
+    {
+      "id": 22,
+      "name": "HỮU ĐỨC",
+      "position": "LB",
+      "number": 47,
+      "order": 23
+    },
+    {
+      "id": 24,
+      "name": "VĂN LƯỢNG",
+      "position": "RB",
+      "number": 77,
+      "order": 24
+    },
+    {
+      "id": 25,
+      "name": "QUANG TRỌNG",
+      "position": "SS",
+      "number": 79,
+      "order": 25
+    },
+    {
+      "id": 26,
+      "name": "BÌNH (CNC)",
+      "position": "RM",
+      "number": 14,
+      "order": 26
+    },
+    {
+      "id": 28,
+      "name": "HOÀNG PHƯƠNG ⓥ",
+      "position": "GK",
+      "number": 23,
+      "order": 27
+    },
+    {
+      "id": 29,
+      "name": "PHÚC LÊ ⓒ",
+      "position": "CB",
+      "number": 62,
+      "order": 6
+    },
+    {
+      "id": 30,
+      "name": "KHƯƠNG LÊ",
+      "position": "AM",
+      "number": 16,
+      "order": 17
+    }
+  ],
+  "schedules": [
+    {
+      "id": "2025-07-13",
+      "date": "2025-07-13",
+      "time": "08:00",
+      "field": "CÂY SỘP",
+      "map": "https://share.google/elx1ST3lFsLAjztPF",
+      "locked_at": 1751677200,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "6": {
+          "state": "busy",
+          "note": "",
+          "reason": "Chấn thương",
+          "locked_at": 0
+        },
+        "8": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "7": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "9": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "10": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "11": {
+          "state": "busy",
+          "note": "",
+          "reason": "Về quê",
+          "locked_at": 0
+        },
+        "12": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "13": {
+          "state": "busy",
+          "note": "",
+          "reason": "Về quê",
+          "locked_at": 0
+        },
+        "14": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "15": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "16": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "17": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "3": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "18": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "20": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "21": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "22": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "24": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "25": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "26": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "27": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "28": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "29": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "30": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        }
+      }
+    },
+    {
+      "id": "2025-07-27",
+      "date": "2025-07-27",
+      "time": "08:00",
+      "field": "SÂN ĐIỆN LỰC (CỎ NHÂN TẠO)",
+      "map": "https://g.co/kgs/tu2bf6o",
+      "locked_at": 1752886800,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466448.005597
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466449.8369722
+        },
+        "6": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466451.068543
+        },
+        "8": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "7": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "9": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "10": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656287.1317005
+        },
+        "11": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752732477.397967
+        },
+        "12": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "13": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656296.7074356
+        },
+        "14": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "15": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466471.0679402
+        },
+        "16": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "17": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656305.6597326
+        },
+        "3": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466494.8925335
+        },
+        "18": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656307.1946602
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466516.0045578
+        },
+        "20": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656308.730118
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656309.730856
+        },
+        "21": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656322.386785
+        },
+        "22": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656323.3621955
+        },
+        "24": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466518.196027
+        },
+        "25": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752656325.2593536
+        },
+        "26": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "27": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466524.5571003
+        },
+        "28": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466526.0366044
+        },
+        "29": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466465.791109
+        },
+        "30": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1752466587.372929
+        }
+      }
+    },
+    {
+      "id": "2025-08-17",
+      "date": "2025-08-17",
+      "time": "08:00",
+      "field": "CÂY SỘP",
+      "map": "https://share.google/81BGrSoBZ2InKbSud",
+      "locked_at": 1754830800,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721261.7721562
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721263.7727807
+        },
+        "6": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721265.4459078
+        },
+        "8": {
+          "state": "busy",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        },
+        "7": {
+          "state": "busy",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        },
+        "9": {
+          "state": "join",
+          "note": "",
+          "reason": "Làm ca đêm ra không đủ thể lực",
+          "locked_at": 1754721273.4290795
+        },
+        "10": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721274.9245167
+        },
+        "11": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721276.8289442
+        },
+        "12": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "13": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721279.1088665
+        },
+        "14": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721280.244565
+        },
+        "15": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721281.715715
+        },
+        "16": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721283.588609
+        },
+        "17": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721285.6614177
+        },
+        "3": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721286.6772535
+        },
+        "18": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721296.8943136
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721298.219708
+        },
+        "20": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721299.172076
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721300.228792
+        },
+        "21": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721301.2305007
+        },
+        "22": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721302.3081317
+        },
+        "24": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721303.3885581
+        },
+        "25": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721304.8530455
+        },
+        "26": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721307.2045732
+        },
+        "28": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721309.3807468
+        },
+        "29": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1754721272.3022325
+        },
+        "30": {
+          "state": "busy",
+          "note": "",
+          "reason": "Về quê có việc",
+          "locked_at": 1754721289.4613764
+        }
+      }
+    },
+    {
+      "id": "2025-09-14",
+      "date": "2025-09-14",
+      "time": "08:00",
+      "field": "CÂY SỘP",
+      "map": "https://share.google/p9Dv6b5NMDyvvnzs4",
+      "locked_at": 1757725200,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647129.3081536
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647130.3947082
+        },
+        "6": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647131.692199
+        },
+        "8": {
+          "state": "busy",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        },
+        "7": {
+          "state": "busy",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        },
+        "9": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "10": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647134.410372
+        },
+        "11": {
+          "state": "busy",
+          "note": "",
+          "reason": "Việc gia đình",
+          "locked_at": 1757647135.449859
+        },
+        "12": {
+          "state": "busy",
+          "note": "",
+          "reason": "Con bệnh",
+          "locked_at": 1757647144.4501796
+        },
+        "13": {
+          "state": "busy",
+          "note": "",
+          "reason": "Bệnh",
+          "locked_at": 1757647145.8603323
+        },
+        "14": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647147.1392536
+        },
+        "15": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647148.9252443
+        },
+        "16": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "17": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "3": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647152.6212866
+        },
+        "18": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "20": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647156.4907618
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647157.563011
+        },
+        "21": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        },
+        "22": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647159.8279562
+        },
+        "24": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647160.9622724
+        },
+        "25": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647162.1714425
+        },
+        "26": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647163.577922
+        },
+        "28": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647164.9782574
+        },
+        "29": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757647133.2676105
+        },
+        "30": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0
+        }
+      }
+    },
+    {
+      "id": "2025-09-28",
+      "date": "2025-09-28",
+      "time": "08:00",
+      "field": "CÂY SỘP",
+      "map": "https://share.google/p9Dv6b5NMDyvvnzs4",
+      "locked_at": 1758330300,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757909809.4056613
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757909811.2286434
+        },
+        "6": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757985931.052582
+        },
+        "8": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "7": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "9": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757917668.5460851
+        },
+        "10": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "11": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "12": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "13": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "14": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "15": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "16": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "17": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757918444.7499259
+        },
+        "3": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757909818.6881359
+        },
+        "18": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757933973.0924797
+        },
+        "20": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 1757928242.0527344
+        },
+        "21": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "22": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "24": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "25": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "26": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "28": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "29": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        },
+        "30": {
+          "state": "",
+          "note": "",
+          "reason": "",
+          "locked_at": 0
+        }
+      }
+    }
+  ],
+  "sessions": {},
+  "lineups": {},
+  "test_key": "hello world"
+}
