@@ -38,11 +38,27 @@ if not os.path.exists(DB_FILE):
 # ================== DB LAYER ==================
 def load_data():
     """
-    Local-first:
-    - Nếu có file local db.json => trả data ngay (đảm bảo UI phản hồi tức thì).
-    - Nếu local không có hoặc đọc lỗi => thử download từ Google Drive và lưu local.
+    Drive-first on startup (safe):
+    - Thử tải từ Google Drive trước -> cache xuống local và trả về.
+    - Nếu Drive không khả dụng thì fallback đọc local cache để đảm bảo UI vẫn hoạt động nhanh.
     """
-    # 1) Try local first
+    # 1) Try Google Drive first
+    try:
+        data = download_db()
+        if isinstance(data, dict):
+            data.setdefault("schedules", [])
+            data.setdefault("players", [])
+            # Cache xuống local để dùng tạm nếu Drive bị lỗi sau này
+            try:
+                with open(DB_FILE, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            except Exception as ex:
+                print("load_data: failed to write cache local:", ex)
+            return data
+    except Exception as e:
+        print("load_data: download_db failed, fallback to local:", e)
+
+    # 2) Fallback -> read local cache
     try:
         if os.path.exists(DB_FILE):
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -52,54 +68,46 @@ def load_data():
                     data.setdefault("players", [])
                     return data
     except Exception as e:
-        # đọc local lỗi -> tiếp tục thử Drive
         print("load_data: read local failed:", e)
-
-    # 2) Fallback -> try Google Drive (and cache to local if ok)
-    try:
-        data = download_db()
-        if isinstance(data, dict):
-            data.setdefault("schedules", [])
-            data.setdefault("players", [])
-            # Cache to local for next requests
-            try:
-                with open(DB_FILE, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-            except Exception as ex:
-                print("load_data: failed to write cache local:", ex)
-            return data
-    except Exception as e:
-        print("load_data: download_db failed:", e)
 
     # 3) Last resort: minimal structure
     return {"schedules": [], "players": []}
 
+
 def save_data(data):
     """
-    Song song: luôn lưu local ngay, sau đó upload Drive trong thread nền.
-    Nếu upload fail thì retry sau 1 phút (1 lần).
+    Ghi local nhanh để UI phản hồi ngay, rồi upload lên Drive trong background.
+    Upload dùng một bản sao (serialized) để tránh tranh chấp dữ liệu nếu data thay đổi sau khi spawn thread.
+    Nếu upload fail, gọi retry sau 60s (1 lần).
     """
-    # 1. Save local trước
+    # 1. Save local ngay
     try:
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print("Save local failed:", e)
+        print("save_data: Save local failed:", e)
 
-    # 2. Upload Drive nền
-    def _upload(retry=False):
+    # 2. Upload Drive nền (dùng serialized copy)
+    def _upload(serialized_data, retry=False):
         try:
-            upload_db(data)
+            # tải lại dict từ serialized để đảm bảo độc lập
+            payload = json.loads(serialized_data)
+            upload_db(payload)
             print("Drive upload success")
         except Exception as e:
             print("Drive upload failed:", e)
             if not retry:
                 # Retry sau 60s
                 def _retry():
-                    _upload(retry=True)
+                    _upload(serialized_data, retry=True)
                 threading.Timer(60, _retry).start()
 
-    threading.Thread(target=_upload, daemon=True).start()
+    try:
+        serialized = json.dumps(data, ensure_ascii=False)
+        threading.Thread(target=_upload, args=(serialized,), daemon=True).start()
+    except Exception as e:
+        print("save_data: failed to start upload thread:", e)
+
 
 def get_schedule(date):
     data = load_data()
