@@ -90,12 +90,13 @@ def save_data(data):
     # 2. Upload Drive nền (dùng serialized copy)
     def _upload(serialized_data, retry=False):
         try:
-            # tải lại dict từ serialized để đảm bảo độc lập
             payload = json.loads(serialized_data)
             upload_db(payload)
-            print("Drive upload success")
+            app.logger.info(
+                f"[UPLOAD]   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | db.json updated to Google Drive"
+            )
         except Exception as e:
-            print("Drive upload failed:", e)
+            app.logger.error("Drive upload failed: %s", e)
             if not retry:
                 # Retry sau 60s
                 def _retry():
@@ -257,6 +258,14 @@ def register(date):
 
         # update in-memory schedule and save (local immediate + drive async)
         schedule["status"] = statuses
+
+        # 🟢 Ghi log đăng ký mới
+        for pid, st in statuses.items():
+            if st.get("state") in ["join", "busy"]:  # chỉ log khi có chọn
+                app.logger.info(
+                    f"[REGISTER] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} | Player {pid} -> {st['state']}"
+                )
+
         save_data(data)
         return redirect(url_for("register", date=date) + ("?admin=1" if admin_mode else ""))
 
