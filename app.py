@@ -93,10 +93,12 @@ def save_data(data):
             payload = json.loads(serialized_data)
             upload_db(payload)
             app.logger.info(
-                f"[UPLOAD]   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | db.json updated to Google Drive"
+                f"[UPLOAD] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | db.json uploaded to Google Drive SUCCESS"
             )
         except Exception as e:
-            app.logger.error("Drive upload failed: %s", e)
+            app.logger.error(
+                 f"[UPLOAD-ERROR] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Failed to upload db.json: {e}"
+            )
             if not retry:
                 # Retry sau 60s
                 def _retry():
@@ -214,6 +216,7 @@ def register(date):
 
     players = sorted(data.get("players", []), key=lambda p: p.get("order", 0))
     statuses = schedule.setdefault("status", {})   # ensure dict and modify in-place
+    prev_states = {pid: st.get("state", "") for pid, st in statuses.items()}
     admin_mode = request.args.get("admin") == "1"
     vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
     now = _time.time()
@@ -260,10 +263,15 @@ def register(date):
         schedule["status"] = statuses
 
         # 🟢 Ghi log đăng ký mới
+        state_map = {"join": "tham gia", "busy": "bận"}
         for pid, st in statuses.items():
-            if st.get("state") in ["join", "busy"]:  # chỉ log khi có chọn
+            new_state = st.get("state")
+            if new_state in ["join", "busy"] and new_state != prev_states.get(pid):
+                player = next((p for p in players if str(p["id"]) == pid), None)
+                name = player["name"] if player else f"ID {pid}"
+                readable_state = state_map.get(new_state, new_state)
                 app.logger.info(
-                    f"[REGISTER] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} | Player {pid} -> {st['state']}"
+                    f"[REGISTER] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} | {name} ({pid}) -> {readable_state}"
                 )
 
         save_data(data)
