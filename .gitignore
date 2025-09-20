@@ -1,0 +1,9 @@
+# Bỏ qua database local
+db.json
+
+# Bỏ qua cache Python
+__pycache__/
+*.pyc
+
+# Bỏ qua file backup
+backup/
