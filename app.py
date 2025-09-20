@@ -221,7 +221,11 @@ def register(date):
     vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
     now = _time.time()
 
+        # timestamp lock (lưu dưới dạng UTC unix ts) + cờ khóa thủ công do admin đặt
     locked_at_ts = schedule.get("locked_at", 0)
+    manual_locked = bool(schedule.get("manual_locked", False))
+
+    # (giữ phần hiển thị thời gian cũ không đổi)
     if locked_at_ts:
         locked_at_utc = datetime.utcfromtimestamp(locked_at_ts).replace(tzinfo=pytz.utc)
         locked_at_vn = locked_at_utc.astimezone(vn_tz)
@@ -229,7 +233,11 @@ def register(date):
     else:
         locked_at_global = 0
 
-    is_locked = not admin_mode and now > locked_at_global
+    # phong tỏa nếu:
+    # - admin không đang thao tác (is not admin) AND
+    # - manual_locked = True  OR current time vượt quá locked_at_ts
+    is_locked = not admin_mode and (manual_locked or (locked_at_ts and now > locked_at_ts))
+
 
     if request.method == "POST":
         for player in players:
@@ -437,6 +445,51 @@ def delete_schedule(date):
     data["schedules"] = [s for s in data.get("schedules", []) if s["id"] != date]
     save_data(data)
     return redirect(url_for("index") + "?admin=1")
+
+# ================== ADMIN LOCK / UNLOCK (manual) ==================
+@app.route("/admin/lock/<date>", methods=["POST"])
+def admin_lock(date):
+    # chỉ admin mới được phép (app đang dùng ?admin=1 làm flag admin)
+    if request.args.get("admin") != "1":
+        return "Không có quyền", 403
+
+    data = load_data()
+    schedule = next((s for s in data.get("schedules", []) if s["id"] == date), None)
+    if not schedule:
+        return f"Không tìm thấy buổi đá {date}", 404
+
+    schedule["manual_locked"] = True
+    save_data(data)
+
+    app.logger.info(f"[LOCK] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} locked by admin")
+    return redirect(url_for("register", date=date) + "?admin=1")
+
+
+@app.route("/admin/unlock/<date>", methods=["POST"])
+def admin_unlock(date):
+    if request.args.get("admin") != "1":
+        return "Không có quyền", 403
+
+    data = load_data()
+    schedule = next((s for s in data.get("schedules", []) if s["id"] == date), None)
+    if not schedule:
+        return f"Không tìm thấy buổi đá {date}", 404
+
+    # nếu admin gửi extend_minutes thì gia hạn locked_at về now + extend_minutes
+    extend_minutes = request.form.get("extend_minutes")
+    if extend_minutes:
+        try:
+            extend = int(extend_minutes)
+            schedule["locked_at"] = int(time.time() + extend * 60)
+        except Exception:
+            # ignore nếu không hợp lệ
+            pass
+
+    schedule["manual_locked"] = False
+    save_data(data)
+
+    app.logger.info(f"[UNLOCK] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} unlocked by admin (extend_minutes={extend_minutes})")
+    return redirect(url_for("register", date=date) + "?admin=1")
 
 # ================== COACH MODE ==================
 @app.route("/coach/<date>")

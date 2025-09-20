@@ -135,6 +135,28 @@ textarea {
 
       <form method="POST" id="register-form">
 
+      {% if admin %}
+      <div style="margin: 10px 0; text-align: center;">
+        <form method="post" action="{{ url_for('admin_lock', date=schedule.id) }}?admin=1" style="display:inline-block; margin-right:8px;">
+          <button type="submit" style="background-color:#d32f2f; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer;">
+            🔒 Khóa đăng ký
+          </button>
+        </form>
+
+        <form method="post" action="{{ url_for('admin_unlock', date=schedule.id) }}?admin=1" style="display:inline-block;">
+          <input type="number" name="extend_minutes" placeholder="Gia hạn phút (tùy chọn)" min="0" style="width:120px; padding:4px; font-size:12px;"/>
+          <button type="submit" style="background-color:#388e3c; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer;">
+            🔓 Mở đăng ký / Gia hạn
+          </button>
+        </form>
+
+        {% if schedule.get('manual_locked') %}
+          <p style="color:#b00020; font-weight:bold; margin-top:6px;">(Đang bị admin khóa sớm)</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+
         <div style="text-align: right; margin: 10px 5px;">
           <button type="button" onclick="exportToPDF()">📄 Xuất bảng đăng ký PDF</button>
         </div>
