@@ -6,9 +6,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 def init_db_from_drive():
     """
-    Khởi tạo dữ liệu db.json từ Google Drive khi app start.
-    Nếu download thất bại -> fallback local hoặc tạo mới.
+    Khởi tạo db.json từ Google Drive khi app start.
+    Chỉ tạo mới nếu local chưa có.
     """
+    if os.path.exists(DB_FILE):
+        print("[INIT] db.json local exists, skip download")
+        return
     print("[INIT] Downloading db.json from Google Drive...")
     try:
         data = download_db()
@@ -18,11 +21,10 @@ def init_db_from_drive():
             json.dump(data, f, ensure_ascii=False, indent=2)
         print("[INIT] db.json downloaded and cached locally.")
     except Exception as e:
-        print("[INIT] Failed to download db.json, fallback local:", e)
-        if not os.path.exists(DB_FILE):
-            print("[INIT] Local db.json not found, creating minimal structure.")
-            with open(DB_FILE, "w", encoding="utf-8") as f:
-                json.dump({"schedules": [], "players": []}, f, ensure_ascii=False, indent=2)
+        print("[INIT] Failed to download db.json, creating minimal structure:", e)
+        initial_data = {"schedules": [], "players": []}
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(initial_data, f, ensure_ascii=False, indent=2)
 
 # --- Google Drive utils ---
 from gdrive_utils import download_db, upload_db
@@ -63,40 +65,29 @@ if not os.path.exists(DB_FILE):
         json.dump(initial_data, f, ensure_ascii=False, indent=2)
 
 # ================== DB LAYER ==================
-def load_data():
+_data_cache = None
+
+def load_data(force_refresh=False):
     """
-    Drive-first on startup (safe):
-    - Thử tải từ Google Drive trước -> cache xuống local và trả về.
-    - Nếu Drive không khả dụng thì fallback đọc local cache để đảm bảo UI vẫn hoạt động nhanh.
+    Luôn đọc từ local cache.
+    Nếu force_refresh=True, có thể gọi init_db_from_drive() trước.
     """
-    # 1) Try Google Drive first
+    global _data_cache
+    if _data_cache is not None and not force_refresh:
+        return _data_cache
+
     try:
-        data = download_db()
-        if not isinstance(data, dict):
-            raise ValueError("Downloaded data invalid")
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            data.setdefault("schedules", [])
+            data.setdefault("players", [])
+            _data_cache = data
+            return data
     except Exception as e:
-        print("Drive download fail, fallback local:", e)
-        try:
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            data = {"schedules": [], "players": []}  # minimal fallback
+        print("load_data failed:", e)
+        _data_cache = {"schedules": [], "players": []}
+        return _data_cache
 
-
-    # 2) Fallback -> read local cache
-    try:
-        if os.path.exists(DB_FILE):
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict):
-                    data.setdefault("schedules", [])
-                    data.setdefault("players", [])
-                    return data
-    except Exception as e:
-        print("load_data: read local failed:", e)
-
-    # 3) Last resort: minimal structure
-    return {"schedules": [], "players": []}
 
 
 def save_data(data):
@@ -118,21 +109,14 @@ def save_data(data):
         print("save_data: temp backup failed:", e)
 
     # 3) Upload Drive async
-    serialized_data = json.dumps(data, ensure_ascii=False, indent=2)
-
-    def _upload(serialized_data, retries=3):
+    def _upload():
         try:
-            payload = json.loads(serialized_data)
-            upload_db(payload)
+            upload_db(data)
             app.logger.info(f"[UPLOAD] db.json uploaded SUCCESS")
         except Exception as e:
-            if retries > 0:
-                app.logger.warning(f"Upload failed, retry in 60s. Remaining retries: {retries}. Error: {e}")
-                threading.Timer(60, lambda: _upload(serialized_data, retries-1)).start()
-            else:
-                app.logger.error(f"Upload failed after retries: {e}")
+            app.logger.error(f"[UPLOAD] db.json failed: {e}")
 
-    threading.Thread(target=_upload, args=(serialized_data,)).start()
+    threading.Thread(target=_upload).start()
 
 
 def get_schedule(date):
