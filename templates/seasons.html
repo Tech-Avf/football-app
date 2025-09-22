@@ -1,0 +1,157 @@
+<!-- templates/seasons.html -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Thống kê mùa giải</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 30px;
+            background-color: #f8f9fa;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+        h2 {
+            margin-bottom: 30px;
+            text-align: center;
+            color: #343a40;
+        }
+        table {
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #343a40;
+            color: #ffffff;
+            text-align: center;
+        }
+        td, th {
+            padding: 12px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        tr:hover {
+            background-color: #f1f3f5;
+        }
+        .win {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+            border-radius: 5px;
+            padding: 4px 8px;
+            display: inline-block;
+        }
+        .draw {
+            background-color: #e2e3e5;
+            color: #6c757d;
+            font-weight: bold;
+            border-radius: 5px;
+            padding: 4px 8px;
+            display: inline-block;
+        }
+        .loss {
+            background-color: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+            border-radius: 5px;
+            padding: 4px 8px;
+            display: inline-block;
+        }
+        @media (max-width: 768px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            th {
+                text-align: left;
+            }
+            td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+            }
+            td::before {
+                position: absolute;
+                left: 15px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                font-weight: bold;
+                text-align: left;
+            }
+            td:nth-of-type(1)::before { content: "Năm"; }
+            td:nth-of-type(2)::before { content: "Số trận"; }
+            td:nth-of-type(3)::before { content: "Thắng"; }
+            td:nth-of-type(4)::before { content: "Hòa"; }
+            td:nth-of-type(5)::before { content: "Thua"; }
+            td:nth-of-type(6)::before { content: "Bàn thắng"; }
+            td:nth-of-type(7)::before { content: "Bàn thua"; }
+            td:nth-of-type(8)::before { content: "Thắng lớn nhất"; }
+            td:nth-of-type(9)::before { content: "Thua lớn nhất"; }
+            td:nth-of-type(10)::before { content: "Tỉ lệ Thắng"; }
+            td:nth-of-type(11)::before { content: "Tỉ lệ Thua"; }
+        }
+    </style>
+</head>
+<body>
+    <h2>Thống kê mùa giải</h2>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Năm</th>
+                    <th>Số trận</th>
+                    <th>Thắng</th>
+                    <th>Hòa</th>
+                    <th>Thua</th>
+                    <th>Bàn thắng</th>
+                    <th>Bàn thua</th>
+                    <th>Thắng lớn nhất</th>
+                    <th>Thua lớn nhất</th>
+                    <th>Tỉ lệ Thắng</th>
+                    <th>Tỉ lệ Thua</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if seasons %}
+                    {% for year, stats in seasons.items() %}
+                        {% set total = stats.matches if stats.matches else 1 %}
+                        {% set win_rate = (stats.wins / total * 100) | round(1) %}
+                        {% set loss_rate = (stats.losses / total * 100) | round(1) %}
+                        <tr>
+                            <td>{{ year }}</td>
+                            <td>{{ stats.matches }}</td>
+                            <td>{{ stats.wins }}</td>
+                            <td>{{ stats.draws }}</td>
+                            <td>{{ stats.losses }}</td>
+                            <td>{{ stats.goals_for }}</td>
+                            <td>{{ stats.goals_against }}</td>
+                            <td>
+                                {% if stats.biggest_win %}
+                                    <span class="win">{{ stats.biggest_win.score }}<br>({{ stats.biggest_win.date }})</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if stats.biggest_loss %}
+                                    <span class="loss">{{ stats.biggest_loss.score }}<br>({{ stats.biggest_loss.date }})</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ win_rate }}%</td>
+                            <td>{{ loss_rate }}%</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="11">Không có dữ liệu</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

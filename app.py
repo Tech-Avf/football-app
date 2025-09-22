@@ -9,13 +9,20 @@ from gdrive_utils import download_db, upload_db
 
 app = Flask(__name__)
 
+def is_schedule_locked(schedule, admin_mode=False):
+    if admin_mode:
+        return False
+    now_ts = time.time()
+    if schedule.get("manual_locked"):
+        return True
+    if schedule.get("locked_at") and now_ts > schedule["locked_at"]:
+        return True
+    return False
+
 # ================== CONFIG ==================
-LOCK_DURATION = 60  # giây
+LOCK_DURATION = 60  # giây, global duy nhất
 DB_FILE = "db.json"
 ANNOUNCE_FILE = "data/announcements.json"
-
-GITHUB_REPO = "Thanh-thuc/football-app"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # ================== ANNOUNCEMENTS UTILS ==================
 def load_announcements():
@@ -45,18 +52,16 @@ def load_data():
     # 1) Try Google Drive first
     try:
         data = download_db()
-        if isinstance(data, dict):
-            data.setdefault("schedules", [])
-            data.setdefault("players", [])
-            # Cache xuống local để dùng tạm nếu Drive bị lỗi sau này
-            try:
-                with open(DB_FILE, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-            except Exception as ex:
-                print("load_data: failed to write cache local:", ex)
-            return data
+        if not isinstance(data, dict):
+            raise ValueError("Downloaded data invalid")
     except Exception as e:
-        print("load_data: download_db failed, fallback to local:", e)
+        print("Drive download fail, fallback local:", e)
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {"schedules": [], "players": []}  # minimal fallback
+
 
     # 2) Fallback -> read local cache
     try:
@@ -75,41 +80,39 @@ def load_data():
 
 
 def save_data(data):
-    """
-    Ghi local nhanh để UI phản hồi ngay, rồi upload lên Drive trong background.
-    Upload dùng một bản sao (serialized) để tránh tranh chấp dữ liệu nếu data thay đổi sau khi spawn thread.
-    Nếu upload fail, gọi retry sau 60s (1 lần).
-    """
-    # 1. Save local ngay
+    # 1) Save local
     try:
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print("save_data: Save local failed:", e)
 
-    # 2. Upload Drive nền (dùng serialized copy)
-    def _upload(serialized_data, retry=False):
+    # 2) Backup tạm
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = f"db_backups/db_{timestamp}.json"
+    os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+    try:
+        with open(backup_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("save_data: temp backup failed:", e)
+
+    # 3) Upload Drive async
+    serialized_data = json.dumps(data, ensure_ascii=False, indent=2)
+
+    def _upload(serialized_data, retries=3):
         try:
             payload = json.loads(serialized_data)
             upload_db(payload)
-            app.logger.info(
-                f"[UPLOAD] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | db.json uploaded to Google Drive SUCCESS"
-            )
+            app.logger.info(f"[UPLOAD] db.json uploaded SUCCESS")
         except Exception as e:
-            app.logger.error(
-                 f"[UPLOAD-ERROR] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Failed to upload db.json: {e}"
-            )
-            if not retry:
-                # Retry sau 60s
-                def _retry():
-                    _upload(serialized_data, retry=True)
-                threading.Timer(60, _retry).start()
+            if retries > 0:
+                app.logger.warning(f"Upload failed, retry in 60s. Remaining retries: {retries}. Error: {e}")
+                threading.Timer(60, lambda: _upload(serialized_data, retries-1)).start()
+            else:
+                app.logger.error(f"Upload failed after retries: {e}")
 
-    try:
-        serialized = json.dumps(data, ensure_ascii=False)
-        threading.Thread(target=_upload, args=(serialized,), daemon=True).start()
-    except Exception as e:
-        print("save_data: failed to start upload thread:", e)
+    threading.Thread(target=_upload, args=(serialized_data,)).start()
 
 
 def get_schedule(date):
@@ -178,15 +181,22 @@ def index():
     data = load_data()
     admin_mode = request.args.get("admin") == "1"
 
+    # Sắp xếp theo ngày giảm dần (mới nhất trước)
     sorted_schedules = sorted(
         data.get("schedules", []),
         key=lambda s: datetime.strptime(
-            f"{s['date']} {s['time']}", "%Y-%m-%d %H:%M"
-        ) if s.get("date") and s.get("time") else datetime.min,
+            f"{s.get('date','1970-01-01')} {s.get('time','00:00')}", "%Y-%m-%d %H:%M"
+        ),
         reverse=True
     )
-    newest_id = sorted_schedules[0]["id"] if sorted_schedules else None
 
+    # 🔹 Lọc trận sắp tới (chưa có kết quả) và trận đã đấu (có kết quả)
+    upcoming = [s for s in sorted_schedules if not s.get("result")]
+    past = [s for s in sorted_schedules if s.get("result")]
+
+    newest_upcoming = upcoming[0]["id"] if upcoming else None
+
+    # Announcements
     anns = load_announcements()
     for a in anns:
         if a.get("is_banner") and "is_scrolling" not in a:
@@ -197,9 +207,10 @@ def index():
 
     return render_template(
         "index.html",
-        schedules=sorted_schedules,
+        upcoming=upcoming,
+        past=past,
         admin=admin_mode,
-        newest_id=newest_id,
+        newest_upcoming=newest_upcoming,
         banner_announcement=banner_announcement,
         popup_announcement=popup_announcement
     )
@@ -207,88 +218,74 @@ def index():
 # ================== REGISTER ==================
 @app.route("/register/<date>", methods=["GET", "POST"])
 def register(date):
-    import time as _time
-
     data = load_data()
     schedule = next((s for s in data["schedules"] if s["id"] == date), None)
     if not schedule:
         return f"Không tìm thấy ngày {date}", 404
 
     players = sorted(data.get("players", []), key=lambda p: p.get("order", 0))
-    statuses = schedule.setdefault("status", {})   # ensure dict and modify in-place
+    statuses = schedule.setdefault("status", {})  # ensure dict
     prev_states = {pid: st.get("state", "") for pid, st in statuses.items()}
     admin_mode = request.args.get("admin") == "1"
-    vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    now = _time.time()
-
-        # timestamp lock (lưu dưới dạng UTC unix ts) + cờ khóa thủ công do admin đặt
-    locked_at_ts = schedule.get("locked_at", 0)
-    manual_locked = bool(schedule.get("manual_locked", False))
-
-    # (giữ phần hiển thị thời gian cũ không đổi)
-    if locked_at_ts:
-        locked_at_utc = datetime.utcfromtimestamp(locked_at_ts).replace(tzinfo=pytz.utc)
-        locked_at_vn = locked_at_utc.astimezone(vn_tz)
-        locked_at_global = int(locked_at_vn.timestamp())
-    else:
-        locked_at_global = 0
-
-    # phong tỏa nếu:
-    # - admin không đang thao tác (is not admin) AND
-    # - manual_locked = True  OR current time vượt quá locked_at_ts
-    is_locked = not admin_mode and (manual_locked or (locked_at_ts and now > locked_at_ts))
+    now = time.time()
 
 
     if request.method == "POST":
         for player in players:
             pid = str(player["id"])
             current = statuses.get(pid, {})
-            lock_time = current.get("locked_at", 0)
-            is_player_locked = lock_time and (now - lock_time > LOCK_DURATION)
 
-            if not admin_mode and is_player_locked:
-                continue
-
+            # Lấy state, note, reason từ form
             state = request.form.get(f"state_{pid}", current.get("state", ""))
             note = request.form.get(f"note_{pid}", current.get("note", ""))
             reason = request.form.get(f"reason_{pid}", current.get("reason", ""))
 
+            lock_time = current.get("locked_at", 0)
+            is_player_locked = lock_time and (now - lock_time < LOCK_DURATION)
+
+            if not admin_mode and is_player_locked:
+                continue  # skip nếu đang lock
+
+            # Cập nhật lock timestamp cho user
             if not admin_mode:
                 if state in ["join", "busy"]:
-                    if not lock_time:
-                        lock_time = now
-                elif state == "":
+                    lock_time = now
+                else:
                     lock_time = 0
 
+            # Cập nhật status
             statuses[pid] = {
                 "state": state,
                 "note": note,
                 "reason": reason,
-                "locked_at": lock_time or 0
+                "locked_at": lock_time
             }
 
-        # update in-memory schedule and save (local immediate + drive async)
+        # Save data
         schedule["status"] = statuses
+        save_data(data)
 
-        # 🟢 Ghi log đăng ký mới
+        # Ghi log
         state_map = {"join": "tham gia", "busy": "bận"}
         for pid, st in statuses.items():
             new_state = st.get("state")
             if new_state in ["join", "busy"] and new_state != prev_states.get(pid):
                 player = next((p for p in players if str(p["id"]) == pid), None)
                 name = player["name"] if player else f"ID {pid}"
-                readable_state = state_map.get(new_state, new_state)
-                app.logger.info(
-                    f"[REGISTER] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} | {name} ({pid}) -> {readable_state}"
-                )
+                app.logger.info(f"[REGISTER] {date} | {name} -> {state_map.get(new_state, new_state)}")
 
-        save_data(data)
         return redirect(url_for("register", date=date) + ("?admin=1" if admin_mode else ""))
 
-    if locked_at_global:
-        locked_datetime_str = datetime.fromtimestamp(locked_at_global).astimezone(vn_tz).strftime("%Y-%m-%d %H:%M")
-    else:
-        locked_datetime_str = "Chưa đặt"
+   # Tính locked global đúng thời gian
+    locked_at_ts = schedule.get("locked_at", 0)
+    manual_locked = schedule.get("manual_locked", False)
+    is_locked = is_schedule_locked(schedule, admin_mode)
+
+    locked_at_global = schedule.get("locked_at", 0)
+    # Cập nhật trạng thái lock cho tất cả player
+    now_ts = time.time()
+    for pid, st in schedule.get("status", {}).items():
+        st['is_locked'] = not admin_mode and (st.get('locked_at',0) and now_ts - st.get('locked_at',0) < LOCK_DURATION)
 
     return render_template(
         "register.html",
@@ -298,9 +295,8 @@ def register(date):
         lock_duration=LOCK_DURATION,
         admin=admin_mode,
         now=now,
-        locked_at_global=locked_at_global,
         is_locked=is_locked,
-        locked_datetime_str=locked_datetime_str
+        locked_at_global=locked_at_global
     )
 
 @app.route("/register/<date>/remove/<int:player_id>", methods=["POST"])
@@ -380,7 +376,8 @@ def create():
             "field": field,
             "map": map_link,
             "locked_at": locked_at,
-            "status": status
+            "status": status,
+            "result": None
         })
 
         save_data(data)
@@ -393,43 +390,37 @@ def create():
 def admin_players():
     data = load_data()
     players = data.get("players", [])
+    admin_mode = True  # admin luôn được truy cập
+
+    now = time.time()
 
     if request.method == "POST":
-        updated_players = []
         for player in players:
             pid = str(player["id"])
-            if request.form.get(f"delete_{pid}"):
-                continue
-            updated_players.append({
-                "id": player["id"],
-                "name": request.form.get(f"name_{pid}", ""),
-                "position": ",".join(request.form.getlist(f"position_{pid}[]")),
-                "number": int(request.form.get(f"number_{pid}", 0)),
-                "order": int(request.form.get(f"order_{pid}", 0))
-            })
+            current = player.get("status", {})  # trạng thái mặc định (nếu cần)
 
-        if request.form.get("new_name"):
-            new_id = 1
-            if updated_players:
-                new_id = max([p["id"] for p in updated_players]) + 1
-            new_player = {
-                "id": new_id,
-                "name": request.form["new_name"],
-                "position": ",".join(request.form.getlist("new_position[]")),
-                "number": int(request.form.get("new_number", 0)),
-                "order": int(request.form.get("new_order", 0))
-            }
-            updated_players.append(new_player)
+            if request.method == "POST":
+                for player in players:
+                    pid = str(player["id"])
+                    # Lấy trạng thái từ form
+                    state = request.form.get(f"state_{pid}", "")
+                    note = request.form.get(f"note_{pid}", "")
+                    reason = request.form.get(f"reason_{pid}", "")
 
-            for schedule in data.get("schedules", []):
-                schedule.setdefault("status", {})[str(new_id)] = {
-                    "state": "",
-                    "note": "",
-                    "reason": "",
-                    "locked_at": 0
-                }
+                    # Admin luôn được cập nhật, không cần lock
+                    player["status"] = {
+                        "state": state,
+                        "note": note,
+                        "reason": reason,
+                        "locked_at": 0
+                    }
 
-        data["players"] = updated_players
+                save_data(data)
+                return redirect(url_for("admin_players"))
+
+
+        # Save data
+        data["players"] = players
         save_data(data)
         return redirect(url_for("admin_players"))
 
@@ -639,6 +630,91 @@ start_scheduler()
 @app.route("/ping")
 def ping():
     return "OK", 200
+
+def is_admin():
+    return request.args.get("admin") == "1"
+
+@app.route("/update_result/<date>", methods=["POST"])
+def update_result(date):
+    if not is_admin():
+        return "Unauthorized", 403
+
+    data = load_data()
+    for s in data.get("schedules", []):
+        if s["id"] == date:
+            # Lấy tỷ số từ form
+            home_score = request.form.get("home_score")
+            away_score = request.form.get("away_score")
+
+            if home_score is not None and away_score is not None:
+                try:
+                    home_score = int(home_score)
+                    away_score = int(away_score)
+                except ValueError:
+                    home_score, away_score = None, None
+
+                if home_score is not None and away_score is not None:
+                    s["result"] = {
+                        "home": "VF UNITED",
+                        "away": "Opponent",
+                        "home_score": home_score,
+                        "away_score": away_score,
+                        "updated_at": datetime.now().isoformat()
+                    }
+            break
+
+    save_data(data)
+    return redirect(url_for("index", admin=1))
+
+@app.route("/seasons")
+def seasons():
+    data = load_data()
+    schedules = data.get("schedules", [])
+
+    seasons_stats = {}
+
+    for s in schedules:
+        if not s.get("result"):
+            continue
+
+        # Lấy năm từ ngày
+        year = s["date"][:4]
+        res = s["result"]
+        hs, as_ = res.get("home_score", 0), res.get("away_score", 0)
+        diff = hs - as_
+
+        if year not in seasons_stats:
+            seasons_stats[year] = {
+                "matches": 0,
+                "wins": 0,
+                "draws": 0,
+                "losses": 0,
+                "goals_for": 0,
+                "goals_against": 0,
+                "biggest_win": None,
+                "biggest_loss": None
+            }
+
+        stats = seasons_stats[year]
+        stats["matches"] += 1
+        stats["goals_for"] += hs
+        stats["goals_against"] += as_
+
+        if hs > as_:
+            stats["wins"] += 1
+            if stats["biggest_win"] is None or diff > stats["biggest_win"]["diff"]:
+                stats["biggest_win"] = {"score": f"{hs}-{as_}", "date": s["date"], "diff": diff}
+        elif hs < as_:
+            stats["losses"] += 1
+            if stats["biggest_loss"] is None or diff < stats["biggest_loss"]["diff"]:
+                stats["biggest_loss"] = {"score": f"{hs}-{as_}", "date": s["date"], "diff": diff}
+        else:
+            stats["draws"] += 1
+
+    # Sắp xếp theo năm giảm dần để thấy năm gần nhất đầu tiên
+    seasons_stats = dict(sorted(seasons_stats.items(), key=lambda x: x[0], reverse=True))
+
+    return render_template("seasons.html", seasons=seasons_stats)
 
 if __name__ == "__main__":
     app.run(debug=True)

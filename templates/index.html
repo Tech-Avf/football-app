@@ -7,6 +7,28 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
+  
+  .divider-glow-gradient {
+  height: 2px;                /* nhỏ lại giống như yêu cầu trước */
+  margin: 24px 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #7CFC00, #FFFF99, #FF8C00, #7CFC00); /* xanh lá → vàng nhạt → cam → xanh lá */
+  background-size: 200% 50%;  /* gradient dài hơn để chạy mượt */
+  animation: gradientMove 4s linear infinite;  /* chỉ còn animation gradient */
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0 0; }
+  100% { background-position: -400% 0; } /* chạy liên tục từ trái sang phải */
+}
+
+
+  /* --------- CARD THEO KẾT QUẢ --------- */
+  .schedule-card.win { background-color: #d4edda !important; color: #155724; }
+  .schedule-card.draw { background-color: #e2e3e5 !important; color: #6c757d; }
+  .schedule-card.loss { background-color: #f8d7da !important; color: #721c24; }
+
+
   /* ---------------- BANNER NỔI ---------------- */
   #floating-banner {
     position: fixed; top: 0; left: 0; width: 100%;
@@ -39,6 +61,10 @@
   }
   .schedule-card:hover { transform: scale(1.01); box-shadow:0 4px 12px rgba(0,0,0,.1); }
 
+  /* ---------------- CARD UPCOMING/PAST ---------------- */
+  .schedule-card.upcoming { background-color: #fff8e1; } /* vàng nhạt */
+  .schedule-card.past { background-color: #f1f1f1; }     /* xám nhạt */
+
   .btn { display:inline-block; padding:6px 12px; background:#2196F3; color:#fff; text-decoration:none; border-radius:5px; font-size:14px; margin:5px 4px 0 0; }
   .delete-btn { background:#f44336; }
   .create-button { background:#4CAF50; color:#fff; text-decoration:none; padding:6px 12px; border-radius:5px; margin-right:8px; font-size:14px; }
@@ -59,7 +85,6 @@
 
   /* ---------------- CARD MỚI NHẤT (để CUỐI cùng để ưu tiên) ---------------- */
   .newest {
-    /* lớp gradient chạy 1 lần */
     background-image: linear-gradient(90deg, #ff8aaf, #d28eff, #ff8aaf);
     background-size: 300% 100%;
     background-position: 200% 0;
@@ -67,15 +92,10 @@
     font-weight: bold;
     position: relative;
     overflow: hidden;
-
-    /* 1) trượt gradient 2.5s  (both giữ lại trạng thái)
-       2) sau 2.5s đặt nền phẳng bằng animation giả lập 0s (forwards giữ nguyên) */
     animation:
       gradientSlide 2.5s ease-in-out 1 both,
       setFlat 0s linear 2.5s forwards;
   }
-
-  /* nhãn “Mới nhất” lắc vô tận */
   .newest::before {
     content:"🔥 Mới nhất";
     position:absolute; top:8px; right:8px;
@@ -84,23 +104,9 @@
     font-weight:bold; box-shadow:0 1px 4px rgba(0,0,0,.2); z-index:1;
     animation: subtleShake 2s infinite ease-in-out;
   }
-
-  @keyframes gradientSlide {
-    from { background-position: 200% 0; }
-    to   { background-position:   0% 0; }
-  }
-
-  /* chuyển sang nền phẳng sau khi hiệu ứng kết thúc */
-  @keyframes setFlat {
-    to { background: #fceff9; }
-  }
-
-  @keyframes subtleShake {
-    0%,100% { transform: rotate(0deg); }
-    25% { transform: rotate(1deg); }
-    50% { transform: rotate(-1deg); }
-    75% { transform: rotate(1deg); }
-  }
+  @keyframes gradientSlide { from { background-position: 200% 0; } to { background-position: 0% 0; } }
+  @keyframes setFlat { to { background: #fceff9; } }
+  @keyframes subtleShake { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(1deg); } 50% { transform: rotate(-1deg); } 75% { transform: rotate(1deg); } }
   </style>
 </head>
 <body>
@@ -143,7 +149,7 @@
 </div>
 
 <div class="container">
-  <h1>Danh sách các ngày thi đấu</h1>
+  <h1>BẢNG ĐĂNG KÝ THAM GIA THI ĐẤU</h1>
 
   {% if admin %}
     <a href="{{ url_for('create') }}" class="create-button">➕ Thêm buổi đá mới</a>
@@ -154,16 +160,42 @@
     <a href="{{ url_for('static', filename='about.html') }}" class="btn-about">📘 Giới thiệu & Nội quy</a>
     <a href="#" onclick="alert('📢 Chức năng đang trong quá trình phát triển, quay lại sau nhé!')" class="btn-about">📸 Thư viện đội bóng</a>
     <a href="{{ url_for('announcements') }}" class="btn-about">📣 Kênh thông báo</a>
+    <a href="{{ url_for('seasons') }}" class="btn-about">📊 Thống kê mùa giải</a>
   </div>
 
-  {% if schedules %}
-    {% for schedule in schedules %}
-      <div class="schedule-card {% if schedule.id == newest_id %}newest{% endif %}">
+  <!-- TRẬN SẮP TỚI -->
+  {% if upcoming %}
+    {% for schedule in upcoming %}
+      {% set result = schedule.get("result") %}
+      {% set hs = result.home_score if result else None %}
+      {% set as_ = result.away_score if result else None %}
+      {% if hs is not none and as_ is not none %}
+          {% if hs > as_ %}{% set match_class = "win" %}{% set match_label = "Win" %}
+          {% elif hs < as_ %}{% set match_class = "loss" %}{% set match_label = "Lose" %}
+          {% else %}{% set match_class = "draw" %}{% set match_label = "Draw" %}{% endif %}
+      {% else %}
+          {% set match_class = "" %}{% set match_label = "" %}
+      {% endif %}
+
+      <div class="schedule-card upcoming {{ match_class }} {% if schedule.id == newest_upcoming %}newest{% endif %}">
         <h3>📅 {{ schedule.time }} | {{ schedule.date | format_date_with_weekday }}</h3>
         <p>🏟️ {{ schedule.field }} – <a href="{{ schedule.map }}" target="_blank">Xem bản đồ</a></p>
-
+        {% if result %}
+          <p>⚽ {{ result.home }} {{ result.home_score }} - {{ result.away_score }} {{ result.away }}
+             <span style="font-weight:bold;">({{ match_label }})</span>
+          </p>
+        {% else %}
+          <p class="italic text-gray-500">⚽ Chưa nhập kết quả</p>
+        {% endif %}
+        {% if admin %}
+          <form action="{{ url_for('update_result', date=schedule.id, admin=1) }}" method="post" style="margin-top:8px; display:flex; align-items:center; gap:6px;">
+            <input type="number" name="home_score" min="0" value="{{ result.home_score if result else '' }}" placeholder="VF" style="width:50px; text-align:center;">
+            <span>-</span>
+            <input type="number" name="away_score" min="0" value="{{ result.away_score if result else '' }}" placeholder="Đối thủ" style="width:50px; text-align:center;">
+            <button type="submit" class="btn">💾 Lưu</button>
+          </form>
+        {% endif %}
         <a href="{{ url_for('register', date=schedule.id) }}" class="btn">📄 Xem & Đăng ký</a>
-
         {% if admin %}
           <form method="POST" action="{{ url_for('delete_schedule', date=schedule.id) }}?admin=1" onsubmit="return confirm('Bạn có chắc muốn xoá buổi đá này không?')">
             <button type="submit" class="btn delete-btn">🗑️ Xóa</button>
@@ -172,8 +204,56 @@
       </div>
     {% endfor %}
   {% else %}
-    <p>Hiện chưa có buổi đá nào được tạo.</p>
+    <p>CHƯA CÓ TRẬN NÀO SĂP TỚI, QUAY LẠI SAU KHI CÓ THÔNG BÁO TRÊN NHÓM.</p>
   {% endif %}
+
+  <hr style="border:1px dashed #ccc; margin:24px 0;" />
+
+  <!-- TRẬN ĐÃ ĐẤU -->
+  <div class="divider-glow-gradient"></div>
+  <h2>✅ Lịch sử đã đấu</h2>
+  {% if past %}
+    {% for schedule in past %}
+      {% set result = schedule.get("result") %}
+      {% set hs = result.home_score if result else None %}
+      {% set as_ = result.away_score if result else None %}
+      {% if hs is not none and as_ is not none %}
+          {% if hs > as_ %}{% set match_class = "win" %}{% set match_label = "Win" %}
+          {% elif hs < as_ %}{% set match_class = "loss" %}{% set match_label = "Lose" %}
+          {% else %}{% set match_class = "draw" %}{% set match_label = "Draw" %}{% endif %}
+      {% else %}
+          {% set match_class = "" %}{% set match_label = "" %}
+      {% endif %}
+      <div class="schedule-card past {{ match_class }}">
+        <h3>📅 {{ schedule.time }} | {{ schedule.date | format_date_with_weekday }}</h3>
+        <p>🏟️ {{ schedule.field }} – <a href="{{ schedule.map }}" target="_blank">Xem bản đồ</a></p>
+        {% if result %}
+          <p>⚽ {{ result.home }} {{ result.home_score }} - {{ result.away_score }} {{ result.away }}
+             <span style="font-weight:bold;">({{ match_label }})</span>
+          </p>
+        {% else %}
+          <p class="italic text-gray-500">⚽ Chưa nhập kết quả</p>
+        {% endif %}
+        {% if admin %}
+          <form action="{{ url_for('update_result', date=schedule.id, admin=1) }}" method="post" style="margin-top:8px; display:flex; align-items:center; gap:6px;">
+            <input type="number" name="home_score" min="0" value="{{ result.home_score if result else '' }}" placeholder="VF" style="width:50px; text-align:center;">
+            <span>-</span>
+            <input type="number" name="away_score" min="0" value="{{ result.away_score if result else '' }}" placeholder="Đối thủ" style="width:50px; text-align:center;">
+            <button type="submit" class="btn">💾 Lưu</button>
+          </form>
+        {% endif %}
+        <a href="{{ url_for('register', date=schedule.id) }}" class="btn">📄 Xem & Đăng ký</a>
+        {% if admin %}
+          <form method="POST" action="{{ url_for('delete_schedule', date=schedule.id) }}?admin=1" onsubmit="return confirm('Bạn có chắc muốn xoá buổi đá này không?')">
+            <button type="submit" class="btn delete-btn">🗑️ Xóa</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>Chưa có trận nào đã đấu.</p>
+  {% endif %}
+
 </div>
 </body>
 </html>
