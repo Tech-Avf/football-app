@@ -4,6 +4,26 @@ from datetime import datetime
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 
+def init_db_from_drive():
+    """
+    Khởi tạo dữ liệu db.json từ Google Drive khi app start.
+    Nếu download thất bại -> fallback local hoặc tạo mới.
+    """
+    print("[INIT] Downloading db.json from Google Drive...")
+    try:
+        data = download_db()
+        if not isinstance(data, dict):
+            raise ValueError("Downloaded data invalid")
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print("[INIT] db.json downloaded and cached locally.")
+    except Exception as e:
+        print("[INIT] Failed to download db.json, fallback local:", e)
+        if not os.path.exists(DB_FILE):
+            print("[INIT] Local db.json not found, creating minimal structure.")
+            with open(DB_FILE, "w", encoding="utf-8") as f:
+                json.dump({"schedules": [], "players": []}, f, ensure_ascii=False, indent=2)
+
 # --- Google Drive utils ---
 from gdrive_utils import download_db, upload_db
 
@@ -717,4 +737,5 @@ def seasons():
     return render_template("seasons.html", seasons=seasons_stats)
 
 if __name__ == "__main__":
+    init_db_from_drive()
     app.run(debug=True)
