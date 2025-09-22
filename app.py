@@ -18,7 +18,6 @@ def init_db_from_drive():
         initial_data = {"schedules": [], "players": []}
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(initial_data, f, ensure_ascii=False, indent=2)
-)
 
 # --- Google Drive utils ---
 from gdrive_utils import download_db, upload_db
