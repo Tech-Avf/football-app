@@ -4,20 +4,33 @@ from datetime import datetime
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 
-def init_db_from_drive():
-    print("[INIT] Downloading db.json from Google Drive...")
+def load_data_from_drive():
+    """
+    Luôn tải dữ liệu trực tiếp từ Drive, không đọc local.
+    """
     try:
         data = download_db()
         if not isinstance(data, dict):
-            raise ValueError("Downloaded data invalid")
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        print("[INIT] db.json downloaded and cached locally.")
+            raise ValueError("Drive data invalid")
+        # Đảm bảo có các key mặc định
+        data.setdefault("schedules", [])
+        data.setdefault("players", [])
+        data.setdefault("lineups", {})
+        return data
     except Exception as e:
-        print("[INIT] Failed to download db.json, creating minimal structure:", e)
-        initial_data = {"schedules": [], "players": []}
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(initial_data, f, ensure_ascii=False, indent=2)
+        print("[LOAD DRIVE] Failed:", e)
+        return {"schedules": [], "players": [], "lineups": {}}
+
+
+def init_db_from_drive():
+    global _data_cache
+    print("[INIT] Downloading db.json from Google Drive...")
+    try:
+        _data_cache = load_data_from_drive()
+        print("[INIT] db.json loaded from Drive into cache.")
+    except Exception as e:
+        print("[INIT] Failed to load db.json from Drive, using empty structure:", e)
+        _data_cache = {"schedules": [], "players": [], "lineups": {}}
 
 # --- Google Drive utils ---
 from gdrive_utils import download_db, upload_db
@@ -60,27 +73,32 @@ if not os.path.exists(DB_FILE):
 # ================== DB LAYER ==================
 _data_cache = None
 
-def load_data(force_refresh=False):
+def load_data(force_refresh=False, use_drive=False):
     """
-    Luôn đọc từ local cache.
-    Nếu force_refresh=True, có thể gọi init_db_from_drive() trước.
+    force_refresh: bỏ cache hiện tại
+    use_drive: nếu True, luôn tải dữ liệu trực tiếp từ Drive
     """
     global _data_cache
     if _data_cache is not None and not force_refresh:
         return _data_cache
 
+    if use_drive:
+        _data_cache = load_data_from_drive()
+        return _data_cache
+
+    # fallback local (vẫn giữ để test)
     try:
         with open(DB_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             data.setdefault("schedules", [])
             data.setdefault("players", [])
+            data.setdefault("lineups", {})
             _data_cache = data
             return data
     except Exception as e:
         print("load_data failed:", e)
-        _data_cache = {"schedules": [], "players": []}
+        _data_cache = {"schedules": [], "players": [], "lineups": {}}
         return _data_cache
-
 
 
 def save_data(data):
@@ -175,7 +193,7 @@ def inject_helpers():
 # INDEX
 @app.route("/")
 def index():
-    data = load_data()
+    data = load_data(use_drive=True)  # luôn lấy Drive
     admin_mode = request.args.get("admin") == "1"
 
     # Sắp xếp theo ngày giảm dần (mới nhất trước)
@@ -715,5 +733,4 @@ def seasons():
 
 if __name__ == "__main__":
     init_db_from_drive()
-    backup_to_github()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)

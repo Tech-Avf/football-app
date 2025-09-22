@@ -24,9 +24,18 @@ def get_drive_service():
     if not SERVICE_ACCOUNT_INFO:
         raise ValueError("SERVICE_ACCOUNT_JSON chưa được thiết lập trong Environment Variables.")
     
-    info = json.loads(SERVICE_ACCOUNT_INFO)  # convert string -> dict
-    creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+    # Nếu SERVICE_ACCOUNT_INFO là đường dẫn tới file
+    if os.path.isfile(SERVICE_ACCOUNT_INFO):
+        creds = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_INFO, scopes=SCOPES
+        )
+    else:
+        # nếu vẫn là JSON string
+        info = json.loads(SERVICE_ACCOUNT_INFO)
+        creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+    
     return build("drive", "v3", credentials=creds)
+
 
 def get_file_id(service):
     """Lấy ID của file db.json trong folder Drive."""
@@ -38,10 +47,11 @@ def get_file_id(service):
     return files[0]["id"]
 
 def download_db():
-    """Tải db.json từ Google Drive về (trả về dict)."""
+    """Tải db.json từ Google Drive về, trả về dict (rỗng nếu chưa có)."""
     service = get_drive_service()
     file_id = get_file_id(service)
     if not file_id:
+        print("[gdrive_utils] db.json chưa có trên Drive, trả về dict rỗng.")
         return {}
 
     request = service.files().get_media(fileId=file_id)
@@ -50,9 +60,12 @@ def download_db():
     done = False
     while not done:
         status, done = downloader.next_chunk()
-
     fh.seek(0)
-    return json.load(fh)
+    try:
+        return json.load(fh)
+    except Exception as e:
+        print("[gdrive_utils] Lỗi parse db.json:", e)
+        return {}
 
 def upload_db(data):
     """Ghi dict data -> db.json lên Google Drive, kèm last_update."""
