@@ -5,13 +5,6 @@ import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 
 def init_db_from_drive():
-    """
-    Khởi tạo db.json từ Google Drive khi app start.
-    Chỉ tạo mới nếu local chưa có.
-    """
-    if os.path.exists(DB_FILE):
-        print("[INIT] db.json local exists, skip download")
-        return
     print("[INIT] Downloading db.json from Google Drive...")
     try:
         data = download_db()
@@ -25,6 +18,7 @@ def init_db_from_drive():
         initial_data = {"schedules": [], "players": []}
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(initial_data, f, ensure_ascii=False, indent=2)
+)
 
 # --- Google Drive utils ---
 from gdrive_utils import download_db, upload_db
@@ -722,4 +716,5 @@ def seasons():
 
 if __name__ == "__main__":
     init_db_from_drive()
+    backup_to_github()
     app.run(debug=True)
