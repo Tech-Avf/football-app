@@ -228,7 +228,7 @@ def index():
 
     banner_announcement = next((a for a in anns if a.get("is_scrolling")), None)
     popup_announcement = next((a for a in anns if a.get("is_popup")), None)
-
+   
     return render_template(
         "index.html",
         upcoming=upcoming,
@@ -303,9 +303,19 @@ def register(date):
 
     is_locked = is_schedule_locked(schedule, admin_mode)
 
+    # Sắp xếp players theo số thứ tự (stt) một cách an toàn
+    def safe_stt(player):
+        try:
+            return int(player.get("stt", 0))
+        except (ValueError, TypeError):
+            return 9999  # nếu không có số thứ tự, cho ra cuối
+   
+    # Sắp xếp players theo số thứ tự (number)
+    players_sorted = sorted(players, key=safe_stt)
+
     return render_template(
         "register.html",
-        players=players,
+        players=players_sorted,
         schedule=schedule,
         statuses=statuses,
         lock_duration=LOCK_DURATION,
@@ -413,22 +423,33 @@ def admin_players():
     if request.method == "POST":
         for player in players:
             pid = str(player["id"])
-            state = request.form.get(f"state_{pid}", "")
-            note = request.form.get(f"note_{pid}", "")
-            reason = request.form.get(f"reason_{pid}", "")
-
-            # Admin luôn được cập nhật, không cần lock
-            player["status"] = {
-                "state": state,
-                "note": note,
-                "reason": reason,
-                "locked_at": 0
-            }
+            # Lấy dữ liệu từ form mới
+            player["name"] = request.form.get(f"name_{pid}", player["name"])
+            player["position"] = request.form.get(f"position_{pid}", player["position"])
+            number = request.form.get(f"number_{pid}", player.get("number", 0))
+            try:
+                player["number"] = int(number)
+            except ValueError:
+                player["number"] = 0
 
         save_data(data)
         return redirect(url_for("admin_players"))
 
+    # NHÁNH GET: render template admin_players.html
     return render_template("admin_players.html", players=players)
+@app.route("/admin/players/delete/<int:player_id>", methods=["POST"])
+def delete_player(player_id):
+    data = load_data()
+    players = data.get("players", [])
+    players = [p for p in players if p["id"] != player_id]
+    data["players"] = players
+
+    # Xoá player khỏi tất cả schedule
+    for s in data.get("schedules", []):
+        s.get("status", {}).pop(str(player_id), None)
+
+    save_data(data)
+    return redirect(url_for("admin_players"))
 # ================== DELETE SCHEDULE ==================
 @app.route("/delete/<date>", methods=["POST"])
 def delete_schedule(date):

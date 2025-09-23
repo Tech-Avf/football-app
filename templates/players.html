@@ -3,45 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý cầu thủ</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Quản lý thành viên</title>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #2196F3; color: white; }
+    button { padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #d32f2f; }
+    a { text-decoration: none; color: #2196F3; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>👤 Danh sách thành viên</h1>
+  <h1>👥 Quản lý thành viên</h1>
 
-    <form method="POST" action="{{ url_for('add_player') }}">
-      <input type="text" name="name" placeholder="Tên" required>
-      <input type="text" name="position" placeholder="Vị trí" required>
-      <input type="number" name="number" placeholder="Số áo" required>
-      <input type="number" name="order" placeholder="Thứ tự" required>
-      <button type="submit">➕ Thêm thành viên</button>
-    </form>
+  <table>
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Tên</th>
+        <th>Vị trí</th>
+        <th>Số áo</th>
+        <th>Xoá</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for player in players %}
+      <tr>
+        <td>{{ player.order }}</td>
+        <td>{{ player.name }}</td>
+        <td>{{ player.position }}</td>
+        <td>{{ player.number }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('delete_player', player_id=player.id) }}" 
+                onsubmit="return confirm('Bạn có chắc muốn xoá {{ player.name }}?');">
+            <button type="submit">🗑️ Xoá</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-    <table>
-      <thead>
-        <tr>
-          <th>STT</th><th>Tên</th><th>Vị trí</th><th>Số áo</th><th>Xoá</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for player in players %}
-        <tr>
-          <td>{{ player.order }}</td>
-          <td>{{ player.name }}</td>
-          <td>{{ player.position }}</td>
-          <td>{{ player.number }}</td>
-          <td>
-            <form method="POST" action="{{ url_for('delete_player', player_id=player.id) }}">
-              <button type="submit">🗑️</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <p><a href="{{ url_for('index') }}">⬅️ Quay về trang chủ</a></p>
-  </div>
+  <p><a href="{{ url_for('index', admin=1) }}">⬅️ Quay về trang chủ</a></p>
 </body>
 </html>

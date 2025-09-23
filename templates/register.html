@@ -182,7 +182,7 @@ textarea {
             {% set is_late = now > locked_at_global and (not pstatus.state) %}
             {% if pid in statuses %}
             <tr class="{% if locked or is_locked %}locked{% endif %}{% if is_late %} late{% endif %}">
-              <td>{{ player.order }}</td>
+              <td>{{ loop.index }}</td>
               <td>{{ player.name }}</td>
               <td>
                 {% for pos in player.position.split(',') %}
