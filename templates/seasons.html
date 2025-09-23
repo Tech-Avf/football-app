@@ -111,6 +111,7 @@
                     <th>Thua lớn nhất</th>
                     <th>Tỉ lệ Thắng</th>
                     <th>Tỉ lệ Thua</th>
+                    <th>Tỉ lệ Hòa</th>
                 </tr>
             </thead>
             <tbody>
@@ -119,6 +120,7 @@
                         {% set total = stats.matches if stats.matches else 1 %}
                         {% set win_rate = (stats.wins / total * 100) | round(1) %}
                         {% set loss_rate = (stats.losses / total * 100) | round(1) %}
+                        {% set draw_rate = (stats.draws / total * 100) | round(1) %}
                         <tr>
                             <td>{{ year }}</td>
                             <td>{{ stats.matches }}</td>
@@ -128,6 +130,7 @@
                             <td>{{ stats.goals_for }}</td>
                             <td>{{ stats.goals_against }}</td>
                             <td>
+
                                 {% if stats.biggest_win %}
                                     <span class="win">{{ stats.biggest_win.score }}<br>({{ stats.biggest_win.date }})</span>
                                 {% else %}
@@ -143,11 +146,12 @@
                             </td>
                             <td>{{ win_rate }}%</td>
                             <td>{{ loss_rate }}%</td>
+                            <td>{{ draw_rate }}%</td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="11">Không có dữ liệu</td>
+                        <td colspan="12">Không có dữ liệu</td>
                     </tr>
                 {% endif %}
             </tbody>

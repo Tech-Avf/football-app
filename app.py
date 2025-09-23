@@ -24,9 +24,17 @@ def load_data_from_drive():
 
 def init_db_from_drive():
     global _data_cache
-    print("[INIT] Downloading db.json from Google Drive...")
+    if not IS_RENDER:
+        print("[INIT] Local dev → không tải Drive, dùng db.json local")
+        _data_cache = load_data(force_refresh=True, use_drive=False)
+        return
+
+    print("[INIT] Render khởi động → tải db.json từ Drive...")
     try:
         _data_cache = load_data_from_drive()
+        # ghi cache ra local để container đọc nhanh
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(_data_cache, f, ensure_ascii=False, indent=2)
         print("[INIT] db.json loaded from Drive into cache.")
     except Exception as e:
         print("[INIT] Failed to load db.json from Drive, using empty structure:", e)
@@ -36,6 +44,8 @@ def init_db_from_drive():
 from gdrive_utils import download_db, upload_db
 
 app = Flask(__name__)
+
+IS_RENDER = os.environ.get("RENDER") == "true"
 
 def is_schedule_locked(schedule, admin_mode=False):
     if admin_mode:
@@ -48,9 +58,13 @@ def is_schedule_locked(schedule, admin_mode=False):
     return False
 
 # ================== CONFIG ==================
-LOCK_DURATION = 60  # giây, global duy nhất
+LOCK_DURATION = 120  # giây, global duy nhất
 DB_FILE = "db.json"
 ANNOUNCE_FILE = "data/announcements.json"
+
+# --- GitHub backup config ---
+GITHUB_REPO = os.environ.get("GITHUB_REPO")  # vd: "username/repo"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")  # personal access token
 
 # ================== ANNOUNCEMENTS UTILS ==================
 def load_announcements():
@@ -74,19 +88,15 @@ if not os.path.exists(DB_FILE):
 _data_cache = None
 
 def load_data(force_refresh=False, use_drive=False):
-    """
-    force_refresh: bỏ cache hiện tại
-    use_drive: nếu True, luôn tải dữ liệu trực tiếp từ Drive
-    """
     global _data_cache
     if _data_cache is not None and not force_refresh:
         return _data_cache
 
-    if use_drive:
+    if IS_RENDER and use_drive:
         _data_cache = load_data_from_drive()
         return _data_cache
 
-    # fallback local (vẫn giữ để test)
+    # Luôn đọc local nếu không phải Render
     try:
         with open(DB_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -99,7 +109,6 @@ def load_data(force_refresh=False, use_drive=False):
         print("load_data failed:", e)
         _data_cache = {"schedules": [], "players": [], "lineups": {}}
         return _data_cache
-
 
 def save_data(data):
     # 1) Save local
@@ -193,7 +202,7 @@ def inject_helpers():
 # INDEX
 @app.route("/")
 def index():
-    data = load_data(use_drive=True)  # luôn lấy Drive
+    data = load_data(use_drive=IS_RENDER)  # chỉ lấy Drive khi deploy
     admin_mode = request.args.get("admin") == "1"
 
     # Sắp xếp theo ngày giảm dần (mới nhất trước)
@@ -234,73 +243,65 @@ def index():
 @app.route("/register/<date>", methods=["GET", "POST"])
 def register(date):
     data = load_data()
-    schedule = next((s for s in data["schedules"] if s["id"] == date), None)
+    schedules = data.get("schedules", [])
+    players = data.get("players", [])
+
+    # Tìm lịch theo date
+    schedule = next((s for s in schedules if s.get("date") == date), None)
     if not schedule:
-        return f"Không tìm thấy ngày {date}", 404
+        return "Không tìm thấy trận đấu", 404
 
-    players = sorted(data.get("players", []), key=lambda p: p.get("order", 0))
-    statuses = schedule.setdefault("status", {})  # ensure dict
-    prev_states = {pid: st.get("state", "") for pid, st in statuses.items()}
-    admin_mode = request.args.get("admin") == "1"
+    statuses = schedule.setdefault("status", {})
     now = time.time()
+    admin_mode = (request.args.get("admin") == "1") or (request.form.get("admin") == "1")
 
-
+    # ----------- Xử lý POST (người bấm nút lưu) -----------
     if request.method == "POST":
         for player in players:
             pid = str(player["id"])
             current = statuses.get(pid, {})
+            lock_time = current.get("locked_at", 0)
+            is_player_locked = bool(lock_time and (now - lock_time >= LOCK_DURATION))
 
-            # Lấy state, note, reason từ form
+            if not admin_mode and is_player_locked:
+                continue
+
             state = request.form.get(f"state_{pid}", current.get("state", ""))
             note = request.form.get(f"note_{pid}", current.get("note", ""))
             reason = request.form.get(f"reason_{pid}", current.get("reason", ""))
 
-            lock_time = current.get("locked_at", 0)
-            is_player_locked = lock_time and (now - lock_time < LOCK_DURATION)
-
-            if not admin_mode and is_player_locked:
-                continue  # skip nếu đang lock
-
-            # Cập nhật lock timestamp cho user
             if not admin_mode:
                 if state in ["join", "busy"]:
-                    lock_time = now
+                    if not lock_time:
+                        lock_time = now
                 else:
                     lock_time = 0
 
-            # Cập nhật status
             statuses[pid] = {
                 "state": state,
                 "note": note,
                 "reason": reason,
-                "locked_at": lock_time
+                "locked_at": lock_time or 0
             }
 
-        # Save data
-        schedule["status"] = statuses
         save_data(data)
-
-        # Ghi log
-        state_map = {"join": "tham gia", "busy": "bận"}
-        for pid, st in statuses.items():
-            new_state = st.get("state")
-            if new_state in ["join", "busy"] and new_state != prev_states.get(pid):
-                player = next((p for p in players if str(p["id"]) == pid), None)
-                name = player["name"] if player else f"ID {pid}"
-                app.logger.info(f"[REGISTER] {date} | {name} -> {state_map.get(new_state, new_state)}")
-
         return redirect(url_for("register", date=date) + ("?admin=1" if admin_mode else ""))
 
-   # Tính locked global đúng thời gian
-    locked_at_ts = schedule.get("locked_at", 0)
-    manual_locked = schedule.get("manual_locked", False)
-    is_locked = is_schedule_locked(schedule, admin_mode)
-
+    # ----------- Xử lý GET (hiển thị giao diện) -----------
     locked_at_global = schedule.get("locked_at", 0)
-    # Cập nhật trạng thái lock cho tất cả player
+    locked_datetime_str = (
+        datetime.fromtimestamp(locked_at_global).strftime("%d/%m/%Y %H:%M")
+        if locked_at_global else "Chưa thiết lập"
+    )
+
+    # Check trạng thái khóa cho từng player
     now_ts = time.time()
     for pid, st in schedule.get("status", {}).items():
-        st['is_locked'] = not admin_mode and (st.get('locked_at',0) and now_ts - st.get('locked_at',0) < LOCK_DURATION)
+        st['is_locked'] = not admin_mode and (
+            st.get('locked_at', 0) and now_ts - st.get('locked_at', 0) >= LOCK_DURATION
+        )
+
+    is_locked = is_schedule_locked(schedule, admin_mode)
 
     return render_template(
         "register.html",
@@ -311,7 +312,8 @@ def register(date):
         admin=admin_mode,
         now=now,
         is_locked=is_locked,
-        locked_at_global=locked_at_global
+        locked_at_global=locked_at_global,
+        locked_datetime_str=locked_datetime_str
     )
 
 @app.route("/register/<date>/remove/<int:player_id>", methods=["POST"])
@@ -368,12 +370,13 @@ def create():
         time_ = request.form.get("time")
         field = request.form.get("location")
         map_link = request.form.get("map_link")
+        locked_at = 0
         locked_at_str = request.form.get("locked_at")
-
-        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-        locked_at_naive = datetime.fromisoformat(locked_at_str)
-        locked_at_local = vn_tz.localize(locked_at_naive)
-        locked_at = int(locked_at_local.astimezone(pytz.utc).timestamp())
+        if locked_at_str:
+            vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+            locked_at_naive = datetime.fromisoformat(locked_at_str)
+            locked_at_local = vn_tz.localize(locked_at_naive)
+            locked_at = int(locked_at_local.astimezone(pytz.utc).timestamp())
 
         status = {
             str(player["id"]): {
@@ -407,40 +410,25 @@ def admin_players():
     players = data.get("players", [])
     admin_mode = True  # admin luôn được truy cập
 
-    now = time.time()
-
     if request.method == "POST":
         for player in players:
             pid = str(player["id"])
-            current = player.get("status", {})  # trạng thái mặc định (nếu cần)
+            state = request.form.get(f"state_{pid}", "")
+            note = request.form.get(f"note_{pid}", "")
+            reason = request.form.get(f"reason_{pid}", "")
 
-            if request.method == "POST":
-                for player in players:
-                    pid = str(player["id"])
-                    # Lấy trạng thái từ form
-                    state = request.form.get(f"state_{pid}", "")
-                    note = request.form.get(f"note_{pid}", "")
-                    reason = request.form.get(f"reason_{pid}", "")
+            # Admin luôn được cập nhật, không cần lock
+            player["status"] = {
+                "state": state,
+                "note": note,
+                "reason": reason,
+                "locked_at": 0
+            }
 
-                    # Admin luôn được cập nhật, không cần lock
-                    player["status"] = {
-                        "state": state,
-                        "note": note,
-                        "reason": reason,
-                        "locked_at": 0
-                    }
-
-                save_data(data)
-                return redirect(url_for("admin_players"))
-
-
-        # Save data
-        data["players"] = players
         save_data(data)
         return redirect(url_for("admin_players"))
 
     return render_template("admin_players.html", players=players)
-
 # ================== DELETE SCHEDULE ==================
 @app.route("/delete/<date>", methods=["POST"])
 def delete_schedule(date):
@@ -492,8 +480,12 @@ def admin_unlock(date):
             pass
 
     schedule["manual_locked"] = False
-    save_data(data)
-
+    # **Mới**: khi gia hạn => chỉ mở khóa cho người chưa chọn.
+    # Những người đã chọn sẽ được "re-locked" (đặt locked_at = now) để họ vẫn bị khóa.
+    now_ts = int(time.time())
+    for pid, st in schedule.setdefault("status", {}).items():
+        if not st.get("state"):  # chưa chọn -> mở khóa
+            st["locked_at"] = 0
     app.logger.info(f"[UNLOCK] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {date} unlocked by admin (extend_minutes={extend_minutes})")
     return redirect(url_for("register", date=date) + "?admin=1")
 
@@ -610,27 +602,39 @@ def save_lineup(schedule_id):
 
 # ================== BACKUP TO GITHUB ==================
 def backup_to_github():
+    """Upload db.json lên GitHub nếu có config"""
+    if not GITHUB_REPO or not GITHUB_TOKEN:
+        print("⚠️  Bỏ qua backup_to_github: chưa cấu hình GITHUB_REPO/GITHUB_TOKEN")
+        return
+
+    import requests, base64
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/db.json"
+
     try:
-        data = load_data()
-        content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+        with open(DB_FILE, "rb") as f:
+            content = f.read()
+        b64_content = base64.b64encode(content).decode("utf-8")
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"backup/db_{timestamp}.json"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
 
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{backup_filename}"
-        headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
+        # Kiểm tra file đã tồn tại chưa
+        resp = requests.get(url, headers=headers)
+        sha = resp.json().get("sha") if resp.status_code == 200 else None
+
+        data = {
+            "message": "Backup db.json",
+            "content": b64_content,
         }
-        payload = {
-            "message": f"Backup db.json at {timestamp}",
-            "content": base64.b64encode(content).decode("utf-8")
-        }
+        if sha:
+            data["sha"] = sha
 
-        response = requests.put(url, headers=headers, json=payload)
-        print("Backup response:", response.json())
+        resp = requests.put(url, headers=headers, json=data)
+        if resp.status_code in (200, 201):
+            print("✅ Đã backup db.json lên GitHub")
+        else:
+            print("❌ Backup GitHub thất bại:", resp.text)
     except Exception as e:
-        print("Backup failed:", e)
+        print("❌ Lỗi backup_to_github:", e)
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
@@ -726,7 +730,14 @@ def seasons():
         else:
             stats["draws"] += 1
 
-    # Sắp xếp theo năm giảm dần để thấy năm gần nhất đầu tiên
+    # Tính draw_rate cho từng mùa
+    for year, stats in seasons_stats.items():
+        if stats["matches"] > 0:
+            stats["draw_rate"] = round(stats["draws"] / stats["matches"], 2)
+        else:
+            stats["draw_rate"] = 0
+
+    # Sắp xếp theo năm giảm dần
     seasons_stats = dict(sorted(seasons_stats.items(), key=lambda x: x[0], reverse=True))
 
     return render_template("seasons.html", seasons=seasons_stats)
