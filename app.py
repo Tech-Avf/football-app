@@ -41,7 +41,7 @@ def init_db_from_drive():
         _data_cache = {"schedules": [], "players": [], "lineups": {}}
 
 # --- Google Drive utils ---
-from gdrive_utils import download_db, upload_db
+from gdrive_utils import download_db, upload_db, download_announcements, upload_announcements
 
 app = Flask(__name__)
 
@@ -67,22 +67,72 @@ GITHUB_REPO = os.environ.get("GITHUB_REPO")  # vd: "username/repo"
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")  # personal access token
 
 # ================== ANNOUNCEMENTS UTILS ==================
-def load_announcements():
+# ================== ANNOUNCEMENTS UTILS (Drive-backed) ==================
+def init_announcements_from_drive():
+    """Khi app start: tải announcements từ Drive về local ANNOUNCE_FILE (nếu có)."""
+    try:
+        if IS_RENDER:
+            data = download_announcements()
+            if isinstance(data, dict) and "announcements" in data:
+                data = data["announcements"]
+            if isinstance(data, list):
+                os.makedirs(os.path.dirname(ANNOUNCE_FILE), exist_ok=True)
+                with open(ANNOUNCE_FILE, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                print("[INIT] announcements loaded from Drive.")
+                return data
+    except Exception as e:
+        print("[INIT ANNOUNCEMENTS] failed to load from Drive:", e)
+
+    # fallback: đọc local nếu có
     if os.path.exists(ANNOUNCE_FILE):
-        with open(ANNOUNCE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(ANNOUNCE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("[LOAD ANNOUNCEMENTS] local load failed:", e)
     return []
 
-def save_announcements(data):
-    os.makedirs(os.path.dirname(ANNOUNCE_FILE), exist_ok=True)
-    with open(ANNOUNCE_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ================== LOCAL DB FALLBACK ==================
-if not os.path.exists(DB_FILE):
-    initial_data = {"schedules": [], "players": []}
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(initial_data, f, ensure_ascii=False, indent=2)
+def load_announcements(force_drive=False):
+    """Load announcements. Nếu force_drive=True sẽ cố gắng đọc từ Drive."""
+    if IS_RENDER or force_drive:
+        try:
+            data = download_announcements()
+            if isinstance(data, dict) and "announcements" in data:
+                return data["announcements"]
+            if isinstance(data, list):
+                return data
+        except Exception as e:
+            print("[LOAD ANNOUNCEMENTS] drive read failed:", e)
+
+    # fallback local
+    if os.path.exists(ANNOUNCE_FILE):
+        try:
+            with open(ANNOUNCE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("[LOAD ANNOUNCEMENTS] local read failed:", e)
+    return []
+
+
+def save_announcements(data):
+    """Save announcements -> local file và upload Drive async (nếu IS_RENDER)."""
+    os.makedirs(os.path.dirname(ANNOUNCE_FILE), exist_ok=True)
+    try:
+        with open(ANNOUNCE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("save_announcements: local write failed:", e)
+
+    if IS_RENDER:
+        def _upload():
+            try:
+                upload_announcements(data)
+                app.logger.info("[UPLOAD] announcements uploaded SUCCESS")
+            except Exception as e:
+                app.logger.error("[UPLOAD] announcements failed: %s", e)
+        threading.Thread(target=_upload).start()
 
 # ================== DB LAYER ==================
 _data_cache = None
@@ -765,4 +815,9 @@ def seasons():
 
 if __name__ == "__main__":
     init_db_from_drive()
-    app.run(host="0.0.0.0", port=5000)
+    try:
+        init_announcements_from_drive()
+    except Exception as e:
+        print("[INIT] init_announcements_from_drive error:", e)
+    port = int(os.environ.get("PORT", 5000))  # Render cấp port qua biến môi trường
+    app.run(host="0.0.0.0", port=port)

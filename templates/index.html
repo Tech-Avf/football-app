@@ -185,7 +185,7 @@
              <span style="font-weight:bold;">({{ match_label }})</span>
           </p>
         {% else %}
-          <p class="italic text-gray-500">⚽ Chưa nhập kết quả</p>
+          <p class="italic text-gray-500">⚽ Chưa có kết quả</p>
         {% endif %}
         {% if admin %}
           <form action="{{ url_for('update_result', date=schedule.id, admin=1) }}" method="post" style="margin-top:8px; display:flex; align-items:center; gap:6px;">
@@ -232,7 +232,7 @@
              <span style="font-weight:bold;">({{ match_label }})</span>
           </p>
         {% else %}
-          <p class="italic text-gray-500">⚽ Chưa nhập kết quả</p>
+          <p class="italic text-gray-500">⚽ Chưa có kết quả</p>
         {% endif %}
         {% if admin %}
           <form action="{{ url_for('update_result', date=schedule.id, admin=1) }}" method="post" style="margin-top:8px; display:flex; align-items:center; gap:6px;">
