@@ -1170,7 +1170,7 @@
         },
         "7": {
           "state": "",
-          "note": "Trễ hạn đăng ký",
+          "note": "",
           "reason": "",
           "locked_at": 0
         },
@@ -1313,5 +1313,5 @@
   "sessions": {},
   "lineups": {},
   "test_key": "hello world",
-  "last_update": "2025-09-23T09:29:02.620708"
+  "last_update": "2025-09-27T01:31:48.374122"
 }
