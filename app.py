@@ -4,6 +4,17 @@ from datetime import datetime
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 
+# ================== CONFIG ==================
+IS_RENDER = os.environ.get("RENDER") == "true"
+DB_FILE = "db.json"
+ANNOUNCE_FILE = "data/announcements.json"
+LOCK_DURATION = 120  # giây, global duy nhất
+
+# --- Google Drive utils ---
+from gdrive_utils import download_db, upload_db, download_announcements, upload_announcements
+
+app = Flask(__name__)
+
 def load_data_from_drive():
     """
     Luôn tải dữ liệu trực tiếp từ Drive, không đọc local.
@@ -40,12 +51,8 @@ def init_db_from_drive():
         print("[INIT] Failed to load db.json from Drive, using empty structure:", e)
         _data_cache = {"schedules": [], "players": [], "lineups": {}}
 
-# --- Google Drive utils ---
-from gdrive_utils import download_db, upload_db, download_announcements, upload_announcements
 
-app = Flask(__name__)
 
-IS_RENDER = os.environ.get("RENDER") == "true"
 
 def is_schedule_locked(schedule, admin_mode=False):
     if admin_mode:
@@ -56,11 +63,6 @@ def is_schedule_locked(schedule, admin_mode=False):
     if schedule.get("locked_at") and now_ts > schedule["locked_at"]:
         return True
     return False
-
-# ================== CONFIG ==================
-LOCK_DURATION = 120  # giây, global duy nhất
-DB_FILE = "db.json"
-ANNOUNCE_FILE = "data/announcements.json"
 
 # --- GitHub backup config ---
 GITHUB_REPO = os.environ.get("GITHUB_REPO")  # vd: "username/repo"
@@ -117,22 +119,21 @@ def load_announcements(force_drive=False):
 
 
 def save_announcements(data):
-    """Save announcements -> local file và upload Drive async (nếu IS_RENDER)."""
-    os.makedirs(os.path.dirname(ANNOUNCE_FILE), exist_ok=True)
-    try:
+    if not IS_RENDER:
+        # Local dev → ghi file để test
+        os.makedirs(os.path.dirname(ANNOUNCE_FILE), exist_ok=True)
         with open(ANNOUNCE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print("save_announcements: local write failed:", e)
 
-    if IS_RENDER:
-        def _upload():
-            try:
-                upload_announcements(data)
-                app.logger.info("[UPLOAD] announcements uploaded SUCCESS")
-            except Exception as e:
-                app.logger.error("[UPLOAD] announcements failed: %s", e)
-        threading.Thread(target=_upload).start()
+    # Always upload to Drive (async)
+    def _upload():
+        try:
+            upload_announcements(data)
+            app.logger.info("[UPLOAD] announcements uploaded SUCCESS")
+        except Exception as e:
+            app.logger.error("[UPLOAD] announcements failed: %s", e)
+
+    threading.Thread(target=_upload).start()
 
 # ================== DB LAYER ==================
 _data_cache = None

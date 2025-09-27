@@ -1,5 +1,6 @@
 # Bỏ qua database local
 db.json
+data_announcements.json
 
 # Bỏ qua cache Python
 __pycache__/
@@ -7,3 +8,10 @@ __pycache__/
 
 # Bỏ qua file backup
 backup/
+db_backups/
+
+# Bỏ qua secrets (khóa Google API)
+key.json
+
+# Bỏ qua file test cục bộ
+test_*.py
