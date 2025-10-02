@@ -942,190 +942,163 @@
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647129.3081536,
-          "is_locked": true
+          "locked_at": 1757647129.3081536
         },
         "5": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647130.3947082,
-          "is_locked": true
+          "locked_at": 1757647130.3947082
         },
         "6": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647131.692199,
-          "is_locked": true
+          "locked_at": 1757647131.692199
         },
         "8": {
           "state": "busy",
-          "note": "Trễ hạn đăng ký",
+          "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "7": {
           "state": "busy",
-          "note": "Trễ hạn đăng ký",
+          "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "9": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "10": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647134.410372,
-          "is_locked": true
+          "locked_at": 1757647134.410372
         },
         "11": {
-          "state": "busy",
+          "state": "join",
           "note": "",
-          "reason": "Việc gia đình",
-          "locked_at": 1757647135.449859,
-          "is_locked": true
+          "reason": "",
+          "locked_at": 1757647135.449859
         },
         "12": {
           "state": "busy",
           "note": "",
           "reason": "Con bệnh",
-          "locked_at": 1757647144.4501796,
-          "is_locked": true
+          "locked_at": 1757647144.4501796
         },
         "13": {
           "state": "busy",
           "note": "",
           "reason": "Bệnh",
-          "locked_at": 1757647145.8603323,
-          "is_locked": true
+          "locked_at": 1757647145.8603323
         },
         "14": {
-          "state": "join",
+          "state": "busy",
           "note": "",
-          "reason": "",
-          "locked_at": 1757647147.1392536,
-          "is_locked": true
+          "reason": "Bệnh",
+          "locked_at": 1757647147.1392536
         },
         "15": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647148.9252443,
-          "is_locked": true
+          "locked_at": 1757647148.9252443
         },
         "16": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "17": {
-          "state": "busy",
-          "note": "Trễ hạn đăng ký",
+          "state": "join",
+          "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "3": {
-          "state": "join",
+          "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647152.6212866,
-          "is_locked": true
+          "locked_at": 1757647152.6212866
         },
         "18": {
-          "state": "",
-          "note": "Trễ hạn đăng ký",
+          "state": "join",
+          "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "19": {
-          "state": "join",
+          "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "20": {
-          "state": "join",
+          "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647156.4907618,
-          "is_locked": true
+          "locked_at": 1757647156.4907618
         },
         "23": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647157.563011,
-          "is_locked": true
+          "locked_at": 1757647157.563011
         },
         "21": {
-          "state": "",
-          "note": "Trễ hạn đăng ký",
+          "state": "join",
+          "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         },
         "22": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647159.8279562,
-          "is_locked": true
+          "locked_at": 1757647159.8279562
         },
         "24": {
-          "state": "join",
+          "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647160.9622724,
-          "is_locked": true
+          "locked_at": 1757647160.9622724
         },
         "25": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647162.1714425,
-          "is_locked": true
+          "locked_at": 1757647162.1714425
         },
         "26": {
-          "state": "join",
+          "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647163.577922,
-          "is_locked": true
+          "locked_at": 1757647163.577922
         },
         "28": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647164.9782574,
-          "is_locked": true
+          "locked_at": 1757647164.9782574
         },
         "29": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647133.2676105,
-          "is_locked": true
+          "locked_at": 1757647133.2676105
         },
         "30": {
-          "state": "",
-          "note": "Trễ hạn đăng ký",
+          "state": "join",
+          "note": "",
           "reason": "",
-          "locked_at": 0,
-          "is_locked": 0
+          "locked_at": 0
         }
       },
       "result": {
@@ -1140,5 +1113,5 @@
   "sessions": {},
   "lineups": {},
   "test_key": "hello world",
-  "last_update": "2025-09-27T01:31:50.574039"
+  "last_update": "2025-10-01T08:00:48.173277"
 }
