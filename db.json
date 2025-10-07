@@ -942,163 +942,190 @@
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647129.3081536
+          "locked_at": 1757647129.3081536,
+          "is_locked": false
         },
         "5": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647130.3947082
+          "locked_at": 1757647130.3947082,
+          "is_locked": false
         },
         "6": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647131.692199
+          "locked_at": 1757647131.692199,
+          "is_locked": false
         },
         "8": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "7": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "9": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "10": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647134.410372
+          "locked_at": 1757647134.410372,
+          "is_locked": false
         },
         "11": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647135.449859
+          "locked_at": 1757647135.449859,
+          "is_locked": false
         },
         "12": {
           "state": "busy",
           "note": "",
           "reason": "Con bệnh",
-          "locked_at": 1757647144.4501796
+          "locked_at": 1757647144.4501796,
+          "is_locked": false
         },
         "13": {
           "state": "busy",
           "note": "",
           "reason": "Bệnh",
-          "locked_at": 1757647145.8603323
+          "locked_at": 1757647145.8603323,
+          "is_locked": false
         },
         "14": {
           "state": "busy",
           "note": "",
           "reason": "Bệnh",
-          "locked_at": 1757647147.1392536
+          "locked_at": 1757647147.1392536,
+          "is_locked": false
         },
         "15": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647148.9252443
+          "locked_at": 1757647148.9252443,
+          "is_locked": false
         },
         "16": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "17": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "3": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647152.6212866
+          "locked_at": 1757647152.6212866,
+          "is_locked": false
         },
         "18": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "19": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "20": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647156.4907618
+          "locked_at": 1757647156.4907618,
+          "is_locked": false
         },
         "23": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647157.563011
+          "locked_at": 1757647157.563011,
+          "is_locked": false
         },
         "21": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         },
         "22": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647159.8279562
+          "locked_at": 1757647159.8279562,
+          "is_locked": false
         },
         "24": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647160.9622724
+          "locked_at": 1757647160.9622724,
+          "is_locked": false
         },
         "25": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647162.1714425
+          "locked_at": 1757647162.1714425,
+          "is_locked": false
         },
         "26": {
           "state": "busy",
           "note": "",
           "reason": "",
-          "locked_at": 1757647163.577922
+          "locked_at": 1757647163.577922,
+          "is_locked": false
         },
         "28": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647164.9782574
+          "locked_at": 1757647164.9782574,
+          "is_locked": false
         },
         "29": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 1757647133.2676105
+          "locked_at": 1757647133.2676105,
+          "is_locked": false
         },
         "30": {
           "state": "join",
           "note": "",
           "reason": "",
-          "locked_at": 0
+          "locked_at": 0,
+          "is_locked": false
         }
       },
       "result": {
@@ -1108,10 +1135,216 @@
         "away_score": 11,
         "updated_at": "2025-09-22T12:42:52.400238"
       }
+    },
+    {
+      "id": "2025-10-05",
+      "date": "2025-10-05",
+      "time": "08:00",
+      "field": "CÂY DA (CỎ NHÂN TẠO)",
+      "map": "https://maps.app.goo.gl/iUyx3UDyUc3VCrcF9",
+      "locked_at": 1759536000,
+      "status": {
+        "4": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "5": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "6": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "8": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "7": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "9": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "10": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "11": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "12": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "13": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "14": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "15": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "16": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "17": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "3": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "18": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "19": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "20": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "23": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "21": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "22": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "24": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "25": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "26": {
+          "state": "busy",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "28": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "29": {
+          "state": "",
+          "note": "Trễ hạn đăng ký",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        },
+        "30": {
+          "state": "join",
+          "note": "",
+          "reason": "",
+          "locked_at": 0,
+          "is_locked": 0
+        }
+      },
+      "result": {
+        "home": "VF UNITED",
+        "away": "Opponent",
+        "home_score": 6,
+        "away_score": 3,
+        "updated_at": "2025-10-06T02:30:14.516909"
+      }
     }
   ],
   "sessions": {},
   "lineups": {},
   "test_key": "hello world",
-  "last_update": "2025-10-01T08:00:48.173277"
+  "last_update": "2025-10-06T02:30:14.521247"
 }
