@@ -1,208 +1,126 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý thành viên</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f6f8;
-      margin: 0;
-      padding: 20px;
-    }
-
-    .logo-top {
-  position: absolute;
-  top: 30x;
-  right: 20.5%;
-  z-index: 1000;
-}
-/* ✅ THÊM ĐOẠN NÀY để logo luôn nhỏ */
-.logo-img {
-  max-width: 90px;
-  height: auto;
-}
-@media (max-width: 768px) {
-  .logo-top {
-    top: 10px;
-    right: 10px;
-  }
-
-  .logo-img {
-    max-width: 90px;
-  }
-}
-
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      background: #fff;
-      border-radius: 8px;
-      padding: 30px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
-    h1 {
-      margin-top: 0;
-      color: #2e7d32;
-      font-size: 24px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    th, td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: center;
-      font-size: 14px;
-    }
-
-    th {
-      background-color: #1565c0;
-      color: white;
-      font-weight: bold;
-    }
-
-    select, input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 6px;
-      box-sizing: border-box;
-    }
-
-    button, a {
-      margin-top: 10px;
-      display: inline-block;
-      padding: 8px 16px;
-      font-size: 14px;
-      border: none;
-      border-radius: 4px;
-      text-decoration: none;
-    }
-
-    button {
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #45a049;
-    }
-
-    a {
-      background-color: #2196F3;
-      color: white;
-    }
-
-    a:hover {
-      background-color: #1976D2;
-    }
-
-    h3 {
-      margin-top: 30px;
-      color: #333;
-    }
-
-    @media (max-width: 768px) {
-      table {
-        font-size: 12px;
-      }
-
-      .container {
-        padding: 15px;
-      }
-
-      .logo-img {
-        max-width: 70px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Quản lý thành viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f9f9f9; }
+        h2 { margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 8px 10px; border: 1px solid #ddd; text-align: center; vertical-align: middle; }
+        th { background: #007bff; color: white; }
+        input[type="text"], input[type="number"] { width: 90%; padding: 5px; }
+        select { width: 100%; }
+        button { padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-save { background: #28a745; color: white; font-weight: bold; }
+        .btn-add { background: #17a2b8; color: white; font-weight: bold; }
+        .btn-delete { background: #dc3545; color: white; }
+        .btn-back { background: #6c757d; color: white; margin-right: 10px; }
+        .btn-save:hover { background: #218838; }
+        .btn-add:hover { background: #138496; }
+        .btn-delete:hover { background: #c82333; }
+        .btn-back:hover { background: #5a6268; }
+    </style>
 </head>
 <body>
-  <div class="logo-top">
-    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo-img">
-  </div>
+    <h2>⚙️ Quản lý thành viên đội bóng</h2>
 
-  <div class="container">
-    <h1>👥 Quản lý thành viên</h1>
-    <form method="POST">
-      <table id="player-table">
-        <thead>
-          <tr>
-            <th>STT</th>
-            <th>Tên</th>
-            <th>Vị trí</th>
-            <th>Số áo</th>
-            <th>Xóa</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for player in players %}
-          <tr>
-            <td><input type="number" name="order_{{ player.id }}" value="{{ player.order }}"></td>
-            <td><input type="text" name="name_{{ player.id }}" value="{{ player.name }}"></td>
-            <td>
-              <select name="position_{{ player.id }}[]" multiple size="3">
-                {% set selected_positions = player.position.split(',') %}
-                {% for p in ['GK','LB','RB','CB','LW','RW','SS','ST','CF','LM','RM','AM','CM','DM','COACH','CLUB OWNER','BHL'] %}
-                  <option value="{{ p }}" {% if p in selected_positions %}selected{% endif %}>{{ p }}</option>
+    <form method="POST" action="{{ url_for('admin_players') }}">
+        <table>
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Tên cầu thủ</th>
+                    <th>Số áo</th>
+                    <th>Vị trí</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="players-table">
+                {% for p in players %}
+                <tr>
+                    <td><input type="number" name="stt_{{p.id}}" value="{{p.get('stt', loop.index)}}" min="1"></td>
+                    <td><input type="text" name="name_{{p.id}}" value="{{p.name}}"></td>
+                    <td><input type="number" name="number_{{p.id}}" value="{{p.number}}"></td>
+                    <td>
+                        <select name="position_{{p.id}}" class="position-select" multiple="multiple">
+                            {% set positions = ['GK','LB','RB','CB','LW','RW','SS','ST','CF','LM','RM','AM','CM','DM','COACH','CLUB OWNER','BHL'] %}
+                            {% set player_positions = p.position.split(',') if p.position else [] %}
+                            {% for pos in positions %}
+                                <option value="{{pos}}" {% if pos in player_positions %}selected{% endif %}>{{pos}}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_player', player_id=p.id) }}" style="display:inline;">
+                            <button type="submit" class="btn-delete" onclick="return confirm('Xóa cầu thủ {{p.name}}?')">🗑</button>
+                        </form>
+                    </td>
+                </tr>
                 {% endfor %}
-              </select>
-            </td>
-            <td><input type="number" name="number_{{ player.id }}" value="{{ player.number }}"></td>
-            <td><input type="checkbox" name="delete_{{ player.id }}"></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </tbody>
+        </table>
 
-      <h3>➕ Thêm người mới</h3>
-      <table>
-        <tr>
-          <td><input type="text" name="new_name" placeholder="Tên"></td>
-          <td>
-            <select name="new_position[]" multiple size="3">
-              {% for p in ['GK','LB','RB','CB','LW','RW','SS','ST','CF','LM','RM','AM','CM','DM','COACH','CLUB OWNER','BHL'] %}
-                <option value="{{ p }}">{{ p }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td><input type="number" name="new_number" placeholder="Số áo"></td>
-          <td><input type="number" name="new_order" placeholder="STT"></td>
-        </tr>
-      </table>
-
-      <button id="save-button" type="submit">💾 Lưu thay đổi</button>
-      <a href="{{ url_for('index', admin=1) }}">⬅️ Về trang chủ</a>
+        <br>
+        <button type="button" class="btn-add" id="add-player">+ Thêm cầu thủ mới</button>
+        <br><br>
+        <a href="{{ url_for('index', admin=1) }}" class="btn-back">⬅️ Quay lại</a>
+        <button type="submit" class="btn-save">💾 Lưu thay đổi</button>
     </form>
-  </div>
 
-  <!-- ✅ Script xử lý cuộn xuống sau khi lưu -->
-  <script>
-  // Khi bấm nút Lưu thì đánh dấu để scroll lại
-  document.getElementById("save-button").addEventListener("click", function () {
-    localStorage.setItem("scrollToTable", "true");
-  });
+    <script>
+        $(document).ready(function() {
+            $('.position-select').select2({
+                placeholder: "Chọn vị trí...",
+                allowClear: true,
+                width: 'resolve'
+            });
 
-  // Sau khi reload xong trang
-  window.addEventListener("DOMContentLoaded", function () {
-    if (localStorage.getItem("scrollToTable") === "true") {
-      localStorage.removeItem("scrollToTable");
-      // Chờ DOM dựng xong hoàn toàn rồi mới scroll
-      setTimeout(() => {
-        const table = document.getElementById("player-table");
-        if (table) {
-          table.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 100); // Delay nhẹ để đảm bảo layout đã dựng xong
-    }
-  });
-</script>
+            $("#add-player").click(function() {
+                const newId = Date.now(); // ID tạm thời duy nhất
+                const row = `
+                    <tr>
+                      <td>+</td>
+                      <td><input type="text" name="new_name" placeholder="Tên cầu thủ" required></td>
+                      <td><input type="number" name="new_number" placeholder="Số áo"></td>
+                      <td>
+                        <select name="new_position" multiple>
+                          <option value="GK">GK</option>
+                          <option value="LB">LB</option>
+                          <option value="RB">RB</option>
+                          <option value="CB">CB</option>
+                          <option value="LW">LW</option>
+                          <option value="RW">RW</option>
+                          <option value="SS">SS</option>
+                          <option value="ST">ST</option>
+                          <option value="CF">CF</option>
+                          <option value="LM">LM</option>
+                          <option value="RM">RM</option>
+                          <option value="AM">AM</option>
+                          <option value="CM">CM</option>
+                          <option value="DM">DM</option>
+                          <option value="COACH">COACH</option>
+                          <option value="CLUB OWNER">CLUB OWNER</option>
+                          <option value="BHL">BHL</option>
+                        </select>
+                      </td>
+                      <td><input type="number" name="new_stt" placeholder="STT"></td>
+                      <td><button type="submit">💾 Lưu</button></td>
+                    </tr>
+
+                `;
+                $("#players-table").append(row);
+                $('.position-select').select2({
+                    placeholder: "Chọn vị trí...",
+                    allowClear: true,
+                    width: 'resolve'
+                });
+            });
+        });
+    </script>
 </body>
 </html>

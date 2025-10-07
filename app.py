@@ -3,6 +3,9 @@ import json, os, time, base64, requests, threading
 from datetime import datetime
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
+import logging 
+logger = logging.getLogger(__name__)
+from flask import request, render_template, redirect, url_for
 
 # ================== CONFIG ==================
 IS_RENDER = os.environ.get("RENDER") == "true"
@@ -169,7 +172,11 @@ def save_data(data):
     except Exception as e:
         print("save_data: Save local failed:", e)
 
-    # 2) Backup tạm
+    # 2) Cập nhật cache bộ nhớ (sửa lỗi không thấy thay đổi sau khi xóa)
+    global _data_cache
+    _data_cache = data
+
+    # 3) Backup tạm
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_path = f"db_backups/db_{timestamp}.json"
     os.makedirs(os.path.dirname(backup_path), exist_ok=True)
@@ -179,7 +186,7 @@ def save_data(data):
     except Exception as e:
         print("save_data: temp backup failed:", e)
 
-    # 3) Upload Drive async
+    # 4) Upload Drive async
     def _upload():
         try:
             upload_db(data)
@@ -248,6 +255,50 @@ def inject_helpers():
         format_date_with_weekday=_format_date_with_weekday
     )
 
+# ------------------- Helper cho lịch (đảm bảo so sánh ngày+giờ & result) -------------------
+def _parse_schedule_datetime(schedule):
+    """Trả về datetime (naive) từ schedule['date'] và schedule.get('time')."""
+    date_str = schedule.get("date")
+    time_str = schedule.get("time", "00:00")
+    try:
+        return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except Exception:
+        # fallback chỉ parse date
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d")
+        except Exception:
+            return None
+
+def schedule_has_result(schedule):
+    """Trả True nếu schedule có kết quả (dựa trên updated_at hoặc có score rõ ràng)."""
+    result = schedule.get("result")
+    if not result:
+        return False
+    if isinstance(result, dict):
+        # Nếu admin đã lưu updated_at => coi là có kết quả (ngay cả 0-0)
+        if result.get("updated_at"):
+            return True
+        # Nếu tồn tại home/away score khác rỗng (thậm chí '0' nhưng do admin nhập) -> coi là có kết quả
+        hs = result.get("home_score", "")
+        as_ = result.get("away_score", "")
+        if str(hs).strip() not in ["", "None"] or str(as_).strip() not in ["", "None"]:
+            return True
+    return False
+
+def schedule_is_past(schedule, now=None):
+    """Trả True nếu trận đã qua (= datetime trận < now). Nếu không parse được time -> so sánh date."""
+    if now is None:
+        now = datetime.now()
+    dt = _parse_schedule_datetime(schedule)
+    if dt:
+        return dt < now
+    # fallback: so sánh date only
+    date_str = schedule.get("date", "")
+    try:
+        match_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        return match_date < now.date()
+    except Exception:
+        return False
 # ================== ROUTES ==================
 
 # INDEX
@@ -469,36 +520,98 @@ def create():
 def admin_players():
     data = load_data()
     players = data.get("players", [])
-    admin_mode = True  # admin luôn được truy cập
+    schedules = data.get("schedules", [])
+    today = datetime.now().date()
 
     if request.method == "POST":
-        for player in players:
-            pid = str(player["id"])
-            # Lấy dữ liệu từ form mới
-            player["name"] = request.form.get(f"name_{pid}", player["name"])
-            player["position"] = request.form.get(f"position_{pid}", player["position"])
-            number = request.form.get(f"number_{pid}", player.get("number", 0))
-            try:
-                player["number"] = int(number)
-            except ValueError:
-                player["number"] = 0
+        print("==> FORM:", request.form)
+        form_keys = list(request.form.keys())
+        new_players = []
 
+        # --- Cập nhật thông tin cầu thủ cũ ---
+        for p in players:
+            pid = str(p["id"])
+            if f"name_{pid}" in form_keys:
+                p["name"] = request.form.get(f"name_{pid}", p["name"]).strip()
+                p["number"] = int(request.form.get(f"number_{pid}", p.get("number", 0)) or 0)
+                p["position"] = ",".join(request.form.getlist(f"position_{pid}"))
+                p["stt"] = int(request.form.get(f"stt_{pid}", p.get("stt", 0)) or 0)
+
+        # --- Thêm cầu thủ mới ---
+        name_new = request.form.get("new_name", "").strip()
+        if name_new:
+            new_id = max([p["id"] for p in players] + [0]) + 1
+            new_player = {
+                "id": new_id,
+                "name": name_new,
+                "number": int(request.form.get("new_number", 0) or 0),
+                "position": ",".join(request.form.getlist("new_position")),
+                "stt": int(request.form.get("new_stt", 0) or 0),
+                "deleted": False
+            }
+            players.append(new_player)
+            new_players.append(new_player)
+
+        # --- Thêm cầu thủ mới vào TRẬN TƯƠNG LAI chưa có kết quả ---
+        for s in schedules:
+            match_date_str = s.get("date", "")
+            result = s.get("result", None)
+            try:
+                match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
+            except Exception:
+                continue
+
+            # ❌ Bỏ qua trận cũ hoặc đã có kết quả
+            if match_date < today or result:
+                continue
+
+            # ✅ Thêm cầu thủ mới vào trận sắp tới
+            s.setdefault("status", {})
+            for np in new_players:
+                s["status"][str(np["id"])] = {
+                    "state": "",
+                    "note": "",
+                    "reason": "",
+                    "locked_at": 0
+                }
+
+        data["players"] = players
         save_data(data)
         return redirect(url_for("admin_players"))
 
-    # NHÁNH GET: render template admin_players.html
-    return render_template("admin_players.html", players=players)
+    # --- Hiển thị ---
+    visible_players = [p for p in players if not p.get("deleted")]
+    return render_template("admin_players.html", players=visible_players)
+
 @app.route("/admin/players/delete/<int:player_id>", methods=["POST"])
 def delete_player(player_id):
     data = load_data()
     players = data.get("players", [])
-    players = [p for p in players if p["id"] != player_id]
-    data["players"] = players
+    schedules = data.get("schedules", [])
+    today = datetime.now().date()
 
-    # Xoá player khỏi tất cả schedule
-    for s in data.get("schedules", []):
+    # Ẩn cầu thủ (không xóa hoàn toàn)
+    deleted_player = next((p for p in players if p["id"] == player_id), None)
+    if deleted_player:
+        deleted_player["deleted"] = True
+
+    # Xóa khỏi các trận tương lai chưa có kết quả
+    for s in schedules:
+        match_date_str = s.get("date", "")
+        result = s.get("result", None)
+        try:
+            match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
+        except Exception:
+            continue
+
+        # ❌ Bỏ qua trận đã diễn ra hoặc đã có kết quả
+        if match_date < today or result:
+            continue
+
+        # ✅ Xóa khỏi các trận tương lai chưa có kết quả
         s.get("status", {}).pop(str(player_id), None)
 
+    data["players"] = players
     save_data(data)
     return redirect(url_for("admin_players"))
 # ================== DELETE SCHEDULE ==================
