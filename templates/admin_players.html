@@ -63,7 +63,7 @@
                     </td>
                     <td>
                         <div class="avatar-controls">
-                            <img class="avatar-thumb" src="{{ p.get('avatar', '/static/avatar-default.svg') }}" onerror="this.src='/static/avatar-default.svg'" alt="avatar">
+                            <img class="avatar-thumb" src="{{ p.get('avatar_url') or p.get('avatar', '/static/avatar-default.svg') }}" onerror="this.src='/static/avatar-default.svg'" alt="avatar">
                             <form id="avatar-form-{{p.id}}" method="POST" action="{{ url_for('upload_avatar', player_id=p.id) }}" enctype="multipart/form-data"></form>
                             <input type="file" name="avatar" accept="image/*" form="avatar-form-{{p.id}}">
                             <button type="submit" class="btn-upload" form="avatar-form-{{p.id}}">Upload Avatar</button>

@@ -5,109 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Coach Mode - Lineup Builder</title>
   <style>
-    :root {
-      --bg: #0b1020;
-      --panel: #131a2e;
-      --panel-2: #1a2340;
-      --text: #e8edf8;
-      --muted: #a8b3cf;
-      --accent: #54d17a;
-      --accent-2: #33b2ff;
-      --danger: #ff6b6b;
-      --line: rgba(255, 255, 255, 0.2);
-
-    }
-
+    :root { --bg:#0b1020; --panel:#131a2e; --panel-2:#1a2340; --text:#e8edf8; --muted:#a8b3cf; --accent:#54d17a; --accent-2:#33b2ff; }
     * { box-sizing: border-box; }
+    body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:radial-gradient(circle at top,#1f2b4d 0%,var(--bg) 45%); color:var(--text); min-height:100vh; }
+    .app { max-width:1400px; margin:0 auto; padding:16px; display:grid; grid-template-columns:340px 1fr; gap:16px; }
+    .panel { background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid rgba(255,255,255,.08); border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.35); }
+    .sidebar { padding:12px; display:flex; flex-direction:column; gap:10px; max-height:calc(100vh - 32px); position:sticky; top:16px; }
+    .sidebar h2 { margin:0; font-size:18px; }
+    .sidebar .hint { margin:0; color:var(--muted); font-size:12px; }
+    .bench-drop { border:1px dashed rgba(255,255,255,.25); border-radius:10px; padding:8px; font-size:12px; color:var(--muted); text-align:center; transition:.2s; }
+    .bench-drop.drop-active { border-color:var(--accent-2); background:rgba(51,178,255,.14); color:#d7efff; }
+    .player-list { display:grid; gap:8px; overflow:auto; padding-right:4px; }
+    .player-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px; cursor:grab; transition:transform .15s,border-color .2s,opacity .2s; }
+    .player-card:active { cursor:grabbing; }
+    .player-card.assigned { opacity:.45; border-color:rgba(84,209,122,.55); }
+    .player-meta { line-height:1.2; }
+    .player-meta .name { font-size:13px; font-weight:700; }
+    .player-meta .no { font-size:12px; color:var(--muted); }
+    .workspace { padding:12px; display:grid; gap:12px; align-content:start; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:10px; border-radius:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); }
+    .toolbar .title h1 { margin:0; font-size:20px; }
+    .toolbar .title p { margin:4px 0 0; font-size:12px; color:var(--muted); }
+    .controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    select, button { border-radius:8px; border:1px solid rgba(255,255,255,.18); padding:8px 10px; background:rgba(255,255,255,.08); color:var(--text); font-weight:600; }
+    button { cursor:pointer; }
+    .btn-primary { background:#1f6fff; }
+    .btn-success { background:#259c53; }
 
-    body {
-      margin: 0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(circle at top, #1f2b4d 0%, var(--bg) 45%);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    .export-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .export-head img { width:40px; height:40px; border-radius:8px; }
 
-    .app {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 16px;
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 16px;
-    }
+    .special-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .special-slot { border:1px dashed rgba(255,255,255,.45); border-radius:12px; min-height:120px; background:rgba(0,0,0,.15); padding:8px; transition:.2s; }
+    .special-slot.drop-active { border-color:var(--accent-2); background:rgba(3,61,88,.35); }
 
-    .panel {
-      background: linear-gradient(180deg, var(--panel), var(--panel-2));
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-    }
-
-    .sidebar {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: calc(100vh - 32px);
-      position: sticky;
-      top: 16px;
-    }
-
-    .sidebar h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    .sidebar .hint {
-      margin: 0;
-      color: var(--muted);
-      font-size: 12px;
-
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(circle at top, #1f2b4d 0%, var(--bg) 45%); color: var(--text); min-height: 100vh; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
-    .panel { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); }
-    .sidebar { padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px); position: sticky; top: 16px; }
-    .sidebar h2 { margin: 0; font-size: 18px; }
-    .sidebar .hint { margin: 0; color: var(--muted); font-size: 12px; }
-    .bench-drop { border: 1px dashed rgba(255, 255, 255, 0.25); border-radius: 10px; padding: 8px; font-size: 12px; color: var(--muted); text-align: center; transition: .2s; }
-    .bench-drop.drop-active { border-color: var(--accent-2); background: rgba(51, 178, 255, 0.14); color: #d7efff; }
-    .player-list { display: grid; gap: 8px; overflow: auto; padding-right: 4px; }
-    .player-card { display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 8px; cursor: grab; transition: transform .15s, border-color .2s, opacity .2s; }
-    .player-card:active { cursor: grabbing; }
-    .player-card img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.22); background: #fff; }
-    .player-card.assigned { opacity: 0.45; border-color: rgba(84, 209, 122, 0.55); }
-    .player-meta { line-height: 1.2; }
-    .player-meta .name { font-size: 13px; font-weight: 700; }
-    .player-meta .no { font-size: 12px; color: var(--muted); }
-    .workspace { padding: 12px; display: grid; gap: 12px; align-content: start; }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); }
-    .toolbar .title h1 { margin: 0; font-size: 20px; }
-    .toolbar .title p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
-    .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    select, button { border-radius: 8px; border: 1px solid rgba(255,255,255,.18); padding: 8px 10px; background: rgba(255,255,255,.08); color: var(--text); font-weight: 600; }
-    button { cursor: pointer; }
-    .btn-primary { background: #1f6fff; }
-    .btn-success { background: #259c53; }
-    .pitch { position: relative; min-height: 760px; border-radius: 18px; overflow: hidden; background: repeating-linear-gradient(0deg,#1b8b43 0,#1b8b43 42px,#1f9d4c 42px,#1f9d4c 84px); border: 3px solid rgba(255,255,255,.75); box-shadow: inset 0 0 0 3px rgba(255,255,255,.25); padding: 18px; display: grid; grid-template-rows: repeat(var(--rows, 4), 1fr); gap: 14px; }
-    .pitch::before, .pitch::after { content: ""; position: absolute; left: 50%; transform: translateX(-50%); border: 2px solid rgba(255,255,255,.85); pointer-events: none; }
-    .pitch::before { top: 50%; width: 95%; }
-    .pitch::after { top: 50%; width: 130px; height: 130px; border-radius: 50%; transform: translate(-50%, -50%); }
-    .line { display: grid; gap: 12px; align-items: center; justify-items: center; z-index: 1; }
-    .position-slot { width: min(210px, 100%); min-height: 150px; border: 1px dashed rgba(255,255,255,.45); border-radius: 12px; background: rgba(0,0,0,.15); backdrop-filter: blur(2px); display: grid; grid-template-rows: auto 1fr auto; gap: 6px; padding: 8px; transition: .2s; }
-    .position-slot.drop-active { transform: translateY(-2px); border-color: var(--accent-2); box-shadow: 0 8px 20px rgba(0,0,0,.35); background: rgba(3, 61, 88, 0.35); }
-    .position-label { text-align: center; font-weight: 700; font-size: 12px; color: #f4f8ff; letter-spacing: .4px; }
-    .starter-slot { min-height: 72px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,.25); padding: 6px; }
-    .starter-slot.empty::after { content: "Thả đá chính"; color: rgba(255,255,255,.7); font-size: 12px; }
-    .starter-avatar { width: 62px; height: 62px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 8px 20px rgba(0,0,0,.35); cursor: grab; background: #fff; }
-    .starter-name { font-size: 11px; text-align: center; margin-top: 4px; }
-    .subs-slot { min-height: 36px; border-top: 1px solid rgba(255,255,255,.18); padding-top: 6px; display: grid; gap: 5px; align-content: start; }
-    .sub-tag { font-size: 11px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.28); border-radius: 999px; padding: 4px 8px; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: grab; }
-    .sub-drop-target { height: 8px; border-radius: 999px; background: transparent; border: 1px dashed transparent; transition: .15s; }
-    .sub-drop-target.drop-active { border-color: var(--accent); background: rgba(84,209,122,.3); }
-    @media (max-width: 1100px) { .app { grid-template-columns: 1fr; } .sidebar { position: static; max-height: none; } .pitch { min-height: 680px; } }
+    .pitch { position:relative; min-height:760px; border-radius:18px; overflow:hidden; background:repeating-linear-gradient(0deg,#1b8b43 0,#1b8b43 42px,#1f9d4c 42px,#1f9d4c 84px); border:3px solid rgba(255,255,255,.75); box-shadow:inset 0 0 0 3px rgba(255,255,255,.25); padding:18px; display:grid; grid-template-rows:repeat(var(--rows,4),1fr); gap:14px; }
+    .pitch::before,.pitch::after { content:""; position:absolute; left:50%; transform:translateX(-50%); border:2px solid rgba(255,255,255,.85); pointer-events:none; }
+    .pitch::before { top:50%; width:95%; }
+    .pitch::after { top:50%; width:130px; height:130px; border-radius:50%; transform:translate(-50%,-50%); }
+    .line { display:grid; gap:12px; align-items:center; justify-items:center; z-index:1; }
+    .position-slot { width:min(210px,100%); min-height:150px; border:1px dashed rgba(255,255,255,.45); border-radius:12px; background:rgba(0,0,0,.15); backdrop-filter:blur(2px); display:grid; grid-template-rows:auto 1fr auto; gap:6px; padding:8px; transition:.2s; }
+    .position-slot.drop-active { transform:translateY(-2px); border-color:var(--accent-2); box-shadow:0 8px 20px rgba(0,0,0,.35); background:rgba(3,61,88,.35); }
+    .position-label { text-align:center; font-weight:700; font-size:12px; color:#f4f8ff; letter-spacing:.4px; }
+    .starter-slot { min-height:72px; border-radius:10px; display:flex; align-items:center; justify-content:center; border:1px dashed rgba(255,255,255,.25); padding:6px; }
+    .starter-slot.empty::after { content:"Thả đá chính"; color:rgba(255,255,255,.7); font-size:12px; }
+    .starter-avatar { width:62px; height:62px; border-radius:50%; object-fit:cover; border:3px solid #fff; box-shadow:0 8px 20px rgba(0,0,0,.35); cursor:grab; background:#fff; }
+    .starter-name { font-size:11px; text-align:center; margin-top:4px; font-weight:700; }
+    .starter-number { font-size:11px; text-align:center; color:var(--muted); }
+    .subs-slot { min-height:36px; border-top:1px solid rgba(255,255,255,.18); padding-top:6px; display:grid; gap:5px; align-content:start; }
+    .sub-tag { font-size:11px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.28); border-radius:999px; padding:4px 8px; width:fit-content; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:grab; }
+    .sub-drop-target { height:8px; border-radius:999px; border:1px dashed transparent; transition:.15s; }
+    .sub-drop-target.drop-active { border-color:var(--accent); background:rgba(84,209,122,.3); }
+    @media (max-width:1100px){ .app{grid-template-columns:1fr;} .sidebar{position:static;max-height:none;} .pitch{min-height:680px;} .special-row{grid-template-columns:1fr;} }
   </style>
 </head>
 <body>
@@ -119,8 +68,8 @@
       <div class="player-list" id="playerList"></div>
     </aside>
 
-    <main class="panel workspace">
-      <div class="toolbar" id="lineupCaptureArea">
+    <main class="panel workspace" id="lineupCaptureArea">
+      <div class="toolbar">
         <div class="title">
           <h1>Coach Mode: {{ schedule.date }} {{ schedule.time }}</h1>
           <p>🏟️ {{ schedule.field }} {% if schedule.map %}• <a href="{{ schedule.map }}" target="_blank" style="color:#9cd6ff">Bản đồ</a>{% endif %}</p>
@@ -129,17 +78,28 @@
           <label for="formationSelect">Sơ đồ:</label>
           <select id="formationSelect"></select>
           <button class="btn-success" id="saveBtn">Save Lineup</button>
-          <button id="saveImageBtn">Save Lineup Image</button>
+          <button id="saveImageBtn">📸 Export Lineup</button>
           <button id="clearBtn">Reset lineup</button>
           <button class="btn-primary" onclick="window.location.href='/register/{{ schedule.id }}'">Back to register</button>
         </div>
       </div>
+
+      <div class="export-head" id="exportHeader">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="logo">
+        <div>
+          <div style="font-weight:800; font-size:18px;">TEAM LINEUP</div>
+          <div style="font-size:12px; color:var(--muted);">{{ schedule.field }} • {{ schedule.date }} {{ schedule.time }} • <span id="formationBadge">4-3-3</span></div>
+        </div>
+      </div>
+
+      <div class="special-row">
+        <div class="special-slot" id="coachSlot" data-special="COACH"></div>
+        <div class="special-slot" id="ownerSlot" data-special="CLUB OWNER"></div>
+      </div>
+
       <section class="pitch" id="pitch"></section>
     </main>
   </div>
-
-
-
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
@@ -147,1123 +107,186 @@
       "4-3-3": [["LW","ST","RW"],["CM","CM","CM"],["LB","CB","CB","RB"],["GK"]],
       "4-4-2": [["ST","ST"],["LM","CM","CM","RM"],["LB","CB","CB","RB"],["GK"]],
       "4-2-3-1": [["ST"],["LAM","CAM","RAM"],["CDM","CDM"],["LB","CB","CB","RB"],["GK"]],
-      "4-3-2-1": [["LW","RW"],["CAM","CAM"],["CM","CM","CM"],["LB","CB","CB","RB"],["GK"]],
-      "4-1-3-2": [["ST","ST"],["LM","CAM","RM"],["CDM"],["LB","CB","CB","RB"],["GK"]],
-      "4-1-2-1-2": [["ST","ST"],["CAM"],["CM","CM"],["CDM"],["LB","CB","CB","RB"],["GK"]],
-      "4-3-1-2": [["ST","ST"],["CAM"],["CM","CM","CM"],["LB","CB","CB","RB"],["GK"]],
       "3-5-2": [["ST","ST"],["LWB","CM","CM","CM","RWB"],["CB","CB","CB"],["GK"]],
+      "3-4-3": [["LW","ST","RW"],["LM","CM","CM","RM"],["CB","CB","CB"],["GK"]],
+      "4-1-4-1": [["ST"],["LM","CM","CM","RM"],["CDM"],["LB","CB","CB","RB"],["GK"]],
+      "4-3-2-1": [["LW","RW"],["CAM","CAM"],["CM","CM","CM"],["LB","CB","CB","RB"],["GK"]],
       "5-3-2": [["ST","ST"],["CM","CM","CM"],["LWB","CB","CB","CB","RWB"],["GK"]],
-      "3-4-3": [["LW","ST","RW"],["LM","CM","CM","RM"],["CB","CB","CB"],["GK"]]
+      "5-4-1": [["ST"],["LM","CM","CM","RM"],["LWB","CB","CB","CB","RWB"],["GK"]],
+      "4-2-2-2": [["ST","ST"],["CAM","CAM"],["CDM","CDM"],["LB","CB","CB","RB"],["GK"]]
     };
 
-    const allPlayers = {{ all_joined_players | tojson }}.map(p => ({ ...p, id: String(p.id) }));
+    const allPlayers = {{ all_joined_players | tojson }}.map(p => ({ ...p, id:String(p.id), avatar_url: (p.avatar_url || p.avatar || '/static/avatar-default.svg') }));
     const playerMap = new Map(allPlayers.map(p => [p.id, p]));
     const fallbackAvatar = '/static/avatar-default.svg';
     const scheduleId = '{{ schedule.id }}';
 
-    const state = { formation: '4-3-3', slots: {} };
+    const state = { formation:'4-3-3', slots:{}, special:{ COACH:null, 'CLUB OWNER':null } };
 
     const formationSelect = document.getElementById('formationSelect');
     const pitch = document.getElementById('pitch');
     const playerList = document.getElementById('playerList');
     const benchDrop = document.getElementById('benchDrop');
 
-    Object.keys(FORMATIONS).forEach(f => {
-      const opt = document.createElement('option');
-      opt.value = f;
-      opt.textContent = f;
-      formationSelect.appendChild(opt);
-    });
+    Object.keys(FORMATIONS).forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; formationSelect.appendChild(o); });
 
-
-    function createEmptySlots(formationName) {
-      const slots = {};
-      const counters = {};
-      FORMATIONS[formationName].flat().forEach(pos => {
-        counters[pos] = (counters[pos] || 0) + 1;
-        const key = `${pos}${counters[pos] > 1 ? counters[pos] : ''}`;
-        slots[key] = { label: key, starter: null, subs: [] };
-      });
+    function createEmptySlots(name){
+      const slots={}; const c={};
+      FORMATIONS[name].flat().forEach(pos=>{ c[pos]=(c[pos]||0)+1; const k=`${pos}${c[pos]>1?c[pos]:''}`; slots[k]={label:k, starter:null, subs:[]}; });
       return slots;
     }
 
-    function removePlayerFromAll(playerId) {
-      Object.values(state.slots).forEach(slot => {
-        if (slot.starter === playerId) slot.starter = null;
-        slot.subs = slot.subs.filter(id => id !== playerId);
-      });
+    function removePlayerFromAllPositions(playerId){
+      Object.values(state.slots).forEach(s=>{ if(s.starter===playerId) s.starter=null; s.subs=s.subs.filter(x=>x!==playerId); });
+      Object.keys(state.special).forEach(k=>{ if(state.special[k]===playerId) state.special[k]=null; });
     }
 
-    function assignToStarter(slotKey, playerId) {
-      const slot = state.slots[slotKey];
-      if (!slot) return;
-      removePlayerFromAll(playerId);
-      if (!slot.starter) slot.starter = playerId;
-      else slot.subs.push(playerId);
+    function addPlayerToPosition(playerId, positionKey, isSpecial=false, subIndex=null){
+      removePlayerFromAllPositions(playerId);
+      if(isSpecial){ state.special[positionKey]=playerId; return; }
+      const slot=state.slots[positionKey]; if(!slot) return;
+      if(!slot.starter) slot.starter=playerId;
+      else if(subIndex===null || subIndex>slot.subs.length) slot.subs.push(playerId);
+      else slot.subs.splice(subIndex,0,playerId);
     }
 
-    function assignToSubs(slotKey, playerId, insertIndex = null) {
-      const slot = state.slots[slotKey];
-      if (!slot) return;
-      removePlayerFromAll(playerId);
-      if (insertIndex === null || insertIndex > slot.subs.length) slot.subs.push(playerId);
-      else slot.subs.splice(insertIndex, 0, playerId);
-    }
+    function getAvatar(player){ return (player && player.avatar_url) ? player.avatar_url : fallbackAvatar; }
+    function makePayload(playerId){ return JSON.stringify({playerId}); }
+    function parsePayload(ev){ try{ return JSON.parse(ev.dataTransfer.getData('text/plain')); }catch{return null;} }
 
-    function getAvatar(player) {
-      return (player && player.avatar) ? player.avatar : fallbackAvatar;
-    }
-
-    function makePayload(playerId, sourceType, slotKey = null, subIndex = null) {
-      return JSON.stringify({ playerId, sourceType, slotKey, subIndex });
-    }
-
-    function parsePayload(ev) {
-      try { return JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return null; }
-    }
-
-    function renderSidebar() {
-      const assigned = new Set();
-      Object.values(state.slots).forEach(slot => {
-        if (slot.starter) assigned.add(slot.starter);
-        slot.subs.forEach(id => assigned.add(id));
-      });
-      playerList.innerHTML = '';
-      allPlayers.forEach(player => {
-        const card = document.createElement('div');
-        card.className = `player-card ${assigned.has(player.id) ? 'assigned' : ''}`;
-        card.draggable = true;
-        card.innerHTML = `
-          <img src="${getAvatar(player)}" alt="${player.name}" onerror="this.src='${fallbackAvatar}'">
-          <div class="player-meta"><div class="name">${player.name}</div><div class="no">#${player.number || 0}</div></div>`;
-        card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(player.id, 'sidebar')));
+    function renderSidebar(){
+      const used=new Set();
+      Object.values(state.slots).forEach(s=>{ if(s.starter) used.add(s.starter); s.subs.forEach(x=>used.add(x)); });
+      Object.values(state.special).forEach(v=>{ if(v) used.add(v); });
+      playerList.innerHTML='';
+      allPlayers.forEach(p=>{
+        const card=document.createElement('div');
+        card.className=`player-card ${used.has(p.id)?'assigned':''}`;
+        card.draggable=true;
+        card.innerHTML=`<div class="player-meta"><div class="name">${p.name}</div><div class="no">#${p.number||0}</div></div>`;
+        card.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',makePayload(p.id)));
         playerList.appendChild(card);
       });
     }
 
-    function renderPitch() {
-      pitch.innerHTML = '';
-      const lines = FORMATIONS[state.formation];
-      pitch.style.setProperty('--rows', lines.length);
+    function attachDrop(el, onDrop){
+      el.addEventListener('dragover',e=>{ e.preventDefault(); el.classList.add('drop-active'); });
+      el.addEventListener('dragleave',()=>el.classList.remove('drop-active'));
+      el.addEventListener('drop',e=>{ e.preventDefault(); el.classList.remove('drop-active'); const p=parsePayload(e); if(!p||!playerMap.has(p.playerId)) return; onDrop(p.playerId); render(); });
+    }
 
-      const counters = {};
-      lines.forEach(line => {
-        const lineEl = document.createElement('div');
-        lineEl.className = 'line';
-        lineEl.style.gridTemplateColumns = `repeat(${line.length}, minmax(120px, 1fr))`;
+    function playerCardOnField(playerId){
+      const p=playerMap.get(playerId); if(!p) return document.createElement('div');
+      const wrap=document.createElement('div'); wrap.style.textAlign='center';
+      const avatar=document.createElement('img'); avatar.className='starter-avatar'; avatar.src=getAvatar(p); avatar.onerror=function(){this.src=fallbackAvatar}; avatar.draggable=true; avatar.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',makePayload(playerId)));
+      const name=document.createElement('div'); name.className='starter-name'; name.textContent=(p.name||'').toUpperCase();
+      const no=document.createElement('div'); no.className='starter-number'; no.textContent=`#${p.number||0}`;
+      wrap.appendChild(avatar); wrap.appendChild(name); wrap.appendChild(no);
+      return wrap;
+    }
 
-        line.forEach(pos => {
-          counters[pos] = (counters[pos] || 0) + 1;
-          const slotKey = `${pos}${counters[pos] > 1 ? counters[pos] : ''}`;
-          if (!state.slots[slotKey]) state.slots[slotKey] = { label: slotKey, starter: null, subs: [] };
-          const slotData = state.slots[slotKey];
+    function renderSpecialSlots(){
+      [['COACH','coachSlot'],['CLUB OWNER','ownerSlot']].forEach(([key,id])=>{
+        const el=document.getElementById(id);
+        el.innerHTML=`<div class="position-label">${key}</div><div class="starter-slot ${state.special[key]?'':'empty'}"></div>`;
+        const zone=el.querySelector('.starter-slot');
+        attachDrop(el, pid=>addPlayerToPosition(pid,key,true));
+        if(state.special[key]) zone.appendChild(playerCardOnField(state.special[key]));
+      });
+    }
 
-          const slot = document.createElement('div');
-          slot.className = 'position-slot';
-          slot.innerHTML = `<div class="position-label">${slotKey}</div>`;
+    function renderPitch(){
+      pitch.innerHTML='';
+      const lines=FORMATIONS[state.formation];
+      pitch.style.setProperty('--rows',lines.length);
+      const c={};
+      lines.forEach(line=>{
+        const lineEl=document.createElement('div'); lineEl.className='line'; lineEl.style.gridTemplateColumns=`repeat(${line.length}, minmax(120px, 1fr))`;
+        line.forEach(pos=>{
+          c[pos]=(c[pos]||0)+1;
+          const key=`${pos}${c[pos]>1?c[pos]:''}`;
+          if(!state.slots[key]) state.slots[key]={label:key, starter:null, subs:[]};
+          const slot=state.slots[key];
 
-          const starterZone = document.createElement('div');
-          starterZone.className = 'starter-slot';
-          if (!slotData.starter) starterZone.classList.add('empty');
-          starterZone.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drop-active'); });
-          starterZone.addEventListener('dragleave', () => slot.classList.remove('drop-active'));
-          starterZone.addEventListener('drop', e => {
-            e.preventDefault(); slot.classList.remove('drop-active');
-            const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
-            assignToStarter(slotKey, payload.playerId); render();
-          });
+          const slotEl=document.createElement('div'); slotEl.className='position-slot';
+          slotEl.innerHTML=`<div class="position-label">${key}</div>`;
 
-          if (slotData.starter && playerMap.has(slotData.starter)) {
-            const p = playerMap.get(slotData.starter);
-            const wrap = document.createElement('div');
-            wrap.style.textAlign = 'center';
-            const avatar = document.createElement('img');
-            avatar.className = 'starter-avatar';
-            avatar.src = getAvatar(p);
-            avatar.onerror = function () { this.src = fallbackAvatar; };
-            avatar.draggable = true;
-            avatar.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(slotData.starter, 'starter', slotKey)));
-            const name = document.createElement('div');
-            name.className = 'starter-name';
-            name.textContent = `#${p.number || 0} ${p.name}`;
-            wrap.appendChild(avatar); wrap.appendChild(name);
-            starterZone.appendChild(wrap);
-          }
+          const starter=document.createElement('div'); starter.className='starter-slot'; if(!slot.starter) starter.classList.add('empty');
+          attachDrop(slotEl,pid=>addPlayerToPosition(pid,key,false));
+          if(slot.starter) starter.appendChild(playerCardOnField(slot.starter));
 
-          const subsZone = document.createElement('div');
-          subsZone.className = 'subs-slot';
-          const addTarget = (index) => {
-            const target = document.createElement('div');
-            target.className = 'sub-drop-target';
-            target.addEventListener('dragover', e => { e.preventDefault(); target.classList.add('drop-active'); slot.classList.add('drop-active'); });
-            target.addEventListener('dragleave', () => { target.classList.remove('drop-active'); slot.classList.remove('drop-active'); });
-            target.addEventListener('drop', e => {
-              e.preventDefault(); target.classList.remove('drop-active'); slot.classList.remove('drop-active');
-              const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
-              assignToSubs(slotKey, payload.playerId, index); render();
-            });
-            subsZone.appendChild(target);
-          };
-
+          const subs=document.createElement('div'); subs.className='subs-slot';
+          const addTarget=(i)=>{ const t=document.createElement('div'); t.className='sub-drop-target'; t.addEventListener('dragover',e=>{e.preventDefault(); t.classList.add('drop-active'); slotEl.classList.add('drop-active');}); t.addEventListener('dragleave',()=>{t.classList.remove('drop-active'); slotEl.classList.remove('drop-active');}); t.addEventListener('drop',e=>{e.preventDefault(); t.classList.remove('drop-active'); slotEl.classList.remove('drop-active'); const p=parsePayload(e); if(!p||!playerMap.has(p.playerId)) return; addPlayerToPosition(p.playerId,key,false,i); render();}); subs.appendChild(t); };
           addTarget(0);
-          slotData.subs.forEach((id, idx) => {
-            const p = playerMap.get(id); if (!p) return;
-            const tag = document.createElement('div');
-            tag.className = 'sub-tag';
-            tag.textContent = `#${p.number || 0} ${p.name}`;
-            tag.draggable = true;
-            tag.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(id, 'sub', slotKey, idx)));
-            subsZone.appendChild(tag);
-            addTarget(idx + 1);
-          });
+          slot.subs.forEach((sid,idx)=>{ const p=playerMap.get(sid); if(!p) return; const tag=document.createElement('div'); tag.className='sub-tag'; tag.textContent=`${(p.name||'').toUpperCase()} #${p.number||0}`; tag.draggable=true; tag.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',makePayload(sid))); subs.appendChild(tag); addTarget(idx+1); });
 
-          slot.appendChild(starterZone);
-          slot.appendChild(subsZone);
-          lineEl.appendChild(slot);
+          slotEl.appendChild(starter); slotEl.appendChild(subs); lineEl.appendChild(slotEl);
         });
-
         pitch.appendChild(lineEl);
       });
     }
 
-    function render() { renderPitch(); renderSidebar(); }
-
-    [benchDrop, document.getElementById('sidebarDropZone')].forEach(el => {
-      el.addEventListener('dragover', e => { e.preventDefault(); benchDrop.classList.add('drop-active'); });
-      el.addEventListener('dragleave', () => benchDrop.classList.remove('drop-active'));
-      el.addEventListener('drop', e => {
-        e.preventDefault(); benchDrop.classList.remove('drop-active');
-        const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
-        removePlayerFromAll(payload.playerId); render();
-      });
-    });
-
-    formationSelect.addEventListener('change', () => {
-      state.formation = formationSelect.value;
-      state.slots = createEmptySlots(state.formation);
-      render();
-    });
-
-    async function loadLineupFromServer() {
-      try {
-        const res = await fetch(`/api/lineup/${scheduleId}`);
-        if (!res.ok) throw new Error('not found');
-        const data = await res.json();
-        state.formation = FORMATIONS[data.formation] ? data.formation : '4-3-3';
-        state.slots = createEmptySlots(state.formation);
-
-        Object.entries(data.slots || {}).forEach(([slotKey, ids]) => {
-          if (!state.slots[slotKey]) return;
-          const valid = (Array.isArray(ids) ? ids : []).map(String).filter(id => playerMap.has(id));
-          state.slots[slotKey].starter = valid[0] || null;
-          state.slots[slotKey].subs = valid.slice(1);
-        });
-      } catch {
-        state.formation = '4-3-3';
-        state.slots = createEmptySlots(state.formation);
-      }
-      formationSelect.value = state.formation;
-      render();
-    }
-
-    function toServerSlots() {
-      const out = {};
-      Object.entries(state.slots).forEach(([k, slot]) => {
-        out[k] = [slot.starter, ...slot.subs].filter(Boolean).map(Number);
-      });
-      return out;
-    }
-
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-      const payload = { date: scheduleId, formation: state.formation, slots: toServerSlots() };
-      const res = await fetch('/api/lineup/save', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-      });
-      alert(res.ok ? 'Đã lưu lineup lên server.' : 'Lưu lineup thất bại.');
-    });
-
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      if (!confirm('Reset toàn bộ lineup hiện tại?')) return;
-      state.slots = createEmptySlots(state.formation);
-      render();
-    });
-
-    function normalizeStadium(name) {
-      return (name || '')
-        .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .toUpperCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^A-Z0-9_]/g, '');
-    }
-
-    document.getElementById('saveImageBtn').addEventListener('click', async () => {
-      const target = document.querySelector('.workspace');
-      const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: null });
-      const link = document.createElement('a');
-      const dateRaw = '{{ schedule.date }}';
-      const [y,m,d] = dateRaw.split('-');
-      const datePart = `${d || '00'}${m || '00'}${y || '0000'}`;
-      const stadiumPart = normalizeStadium('{{ schedule.field }}') || 'STADIUM';
-      link.download = `${datePart}_${stadiumPart}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-
-    loadLineupFromServer();
-
-
-    function createEmptySlots(formationName) {
-      const slots = {};
-      const counters = {};
-      FORMATIONS[formationName].flat().forEach(pos => {
-        counters[pos] = (counters[pos] || 0) + 1;
-        const key = `${pos}${counters[pos] > 1 ? counters[pos] : ''}`;
-        slots[key] = { label: key, starter: null, subs: [] };
-      });
-      return slots;
-    }
-
-    function removePlayerFromAll(playerId) {
-      Object.values(state.slots).forEach(slot => {
-        if (slot.starter === playerId) slot.starter = null;
-        slot.subs = slot.subs.filter(id => id !== playerId);
-      });
-    }
-
-    function assignToStarter(slotKey, playerId) {
-      const slot = state.slots[slotKey];
-      if (!slot) return;
-      removePlayerFromAll(playerId);
-      if (!slot.starter) slot.starter = playerId;
-      else slot.subs.push(playerId);
-    }
-
-    function assignToSubs(slotKey, playerId, insertIndex = null) {
-      const slot = state.slots[slotKey];
-      if (!slot) return;
-      removePlayerFromAll(playerId);
-      if (insertIndex === null || insertIndex > slot.subs.length) slot.subs.push(playerId);
-      else slot.subs.splice(insertIndex, 0, playerId);
-
-    .bench-drop {
-      border: 1px dashed rgba(255, 255, 255, 0.25);
-      border-radius: 10px;
-      padding: 8px;
-      font-size: 12px;
-      color: var(--muted);
-      text-align: center;
-      transition: .2s;
-    }
-
-    .bench-drop.drop-active {
-      border-color: var(--accent-2);
-      background: rgba(51, 178, 255, 0.14);
-      color: #d7efff;
-    }
-
-    .player-list {
-      display: grid;
-      gap: 8px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .player-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 10px;
-      padding: 8px;
-      cursor: grab;
-      transition: transform .15s, border-color .2s, opacity .2s;
-    }
-
-    .player-card:active { cursor: grabbing; }
-
-    .player-card img {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(255,255,255,.22);
-      background: #fff;
-    }
-
-    .player-card.assigned {
-      opacity: 0.45;
-      border-color: rgba(84, 209, 122, 0.55);
-    }
-
-    .player-meta { line-height: 1.2; }
-    .player-meta .name { font-size: 13px; font-weight: 700; }
-    .player-meta .no { font-size: 12px; color: var(--muted); }
-
-    .workspace {
-      padding: 12px;
-      display: grid;
-      gap: 12px;
-      align-content: start;
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      padding: 10px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.1);
-    }
-
-    .toolbar .title h1 { margin: 0; font-size: 20px; }
-    .toolbar .title p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
-
-    .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    select, button {
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.18);
-      padding: 8px 10px;
-      background: rgba(255,255,255,.08);
-      color: var(--text);
-      font-weight: 600;
-
-    }
-    button { cursor: pointer; }
-    .btn-primary { background: #1f6fff; }
-    .btn-success { background: #259c53; }
-
-
-    function getAvatar(player) {
-      return (player && player.avatar) ? player.avatar : fallbackAvatar;
-    }
-
-    function makePayload(playerId, sourceType, slotKey = null, subIndex = null) {
-      return JSON.stringify({ playerId, sourceType, slotKey, subIndex });
-    }
-
-    function parsePayload(ev) {
-      try { return JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return null; }
-    }
-
-    function renderSidebar() {
-      const assigned = new Set();
-      Object.values(state.slots).forEach(slot => {
-        if (slot.starter) assigned.add(slot.starter);
-        slot.subs.forEach(id => assigned.add(id));
-      });
-      playerList.innerHTML = '';
-      allPlayers.forEach(player => {
-        const card = document.createElement('div');
-        card.className = `player-card ${assigned.has(player.id) ? 'assigned' : ''}`;
-        card.draggable = true;
-        card.innerHTML = `
-          <img src="${getAvatar(player)}" alt="${player.name}" onerror="this.src='${fallbackAvatar}'">
-          <div class="player-meta"><div class="name">${player.name}</div><div class="no">#${player.number || 0}</div></div>`;
-        card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(player.id, 'sidebar')));
-        playerList.appendChild(card);
-      });
-    }
-
-    function renderPitch() {
-      pitch.innerHTML = '';
-      const lines = FORMATIONS[state.formation];
-      pitch.style.setProperty('--rows', lines.length);
-
-      const counters = {};
-      lines.forEach(line => {
-        const lineEl = document.createElement('div');
-        lineEl.className = 'line';
-        lineEl.style.gridTemplateColumns = `repeat(${line.length}, minmax(120px, 1fr))`;
-
-        line.forEach(pos => {
-          counters[pos] = (counters[pos] || 0) + 1;
-          const slotKey = `${pos}${counters[pos] > 1 ? counters[pos] : ''}`;
-          if (!state.slots[slotKey]) state.slots[slotKey] = { label: slotKey, starter: null, subs: [] };
-          const slotData = state.slots[slotKey];
-
-          const slot = document.createElement('div');
-          slot.className = 'position-slot';
-          slot.innerHTML = `<div class="position-label">${slotKey}</div>`;
-
-          const starterZone = document.createElement('div');
-          starterZone.className = 'starter-slot';
-          if (!slotData.starter) starterZone.classList.add('empty');
-          starterZone.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drop-active'); });
-          starterZone.addEventListener('dragleave', () => slot.classList.remove('drop-active'));
-          starterZone.addEventListener('drop', e => {
-            e.preventDefault(); slot.classList.remove('drop-active');
-            const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
-            assignToStarter(slotKey, payload.playerId); render();
-          });
-
-          if (slotData.starter && playerMap.has(slotData.starter)) {
-            const p = playerMap.get(slotData.starter);
-            const wrap = document.createElement('div');
-            wrap.style.textAlign = 'center';
-            const avatar = document.createElement('img');
-            avatar.className = 'starter-avatar';
-            avatar.src = getAvatar(p);
-            avatar.onerror = function () { this.src = fallbackAvatar; };
-            avatar.draggable = true;
-            avatar.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(slotData.starter, 'starter', slotKey)));
-            const name = document.createElement('div');
-            name.className = 'starter-name';
-            name.textContent = `#${p.number || 0} ${p.name}`;
-            wrap.appendChild(avatar); wrap.appendChild(name);
-            starterZone.appendChild(wrap);
-          }
-
-          const subsZone = document.createElement('div');
-          subsZone.className = 'subs-slot';
-          const addTarget = (index) => {
-            const target = document.createElement('div');
-            target.className = 'sub-drop-target';
-            target.addEventListener('dragover', e => { e.preventDefault(); target.classList.add('drop-active'); slot.classList.add('drop-active'); });
-            target.addEventListener('dragleave', () => { target.classList.remove('drop-active'); slot.classList.remove('drop-active'); });
-            target.addEventListener('drop', e => {
-              e.preventDefault(); target.classList.remove('drop-active'); slot.classList.remove('drop-active');
-              const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
-              assignToSubs(slotKey, payload.playerId, index); render();
-            });
-            subsZone.appendChild(target);
-          };
-
-          addTarget(0);
-          slotData.subs.forEach((id, idx) => {
-            const p = playerMap.get(id); if (!p) return;
-            const tag = document.createElement('div');
-            tag.className = 'sub-tag';
-            tag.textContent = `#${p.number || 0} ${p.name}`;
-            tag.draggable = true;
-            tag.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(id, 'sub', slotKey, idx)));
-            subsZone.appendChild(tag);
-            addTarget(idx + 1);
-          });
-
-          slot.appendChild(starterZone);
-          slot.appendChild(subsZone);
-          lineEl.appendChild(slot);
-        });
-
-        pitch.appendChild(lineEl);
-      });
-    }
-
-    function render() { renderPitch(); renderSidebar(); }
-
-    [benchDrop, document.getElementById('sidebarDropZone')].forEach(el => {
-      el.addEventListener('dragover', e => { e.preventDefault(); benchDrop.classList.add('drop-active'); });
-      el.addEventListener('dragleave', () => benchDrop.classList.remove('drop-active'));
-      el.addEventListener('drop', e => {
-        e.preventDefault(); benchDrop.classList.remove('drop-active');
-        const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
-        removePlayerFromAll(payload.playerId); render();
-      });
-    });
-
-    formationSelect.addEventListener('change', () => {
-      state.formation = formationSelect.value;
-      state.slots = createEmptySlots(state.formation);
-      render();
-    });
-
-    async function loadLineupFromServer() {
-      try {
-        const res = await fetch(`/api/lineup/${scheduleId}`);
-        if (!res.ok) throw new Error('not found');
-        const data = await res.json();
-        state.formation = FORMATIONS[data.formation] ? data.formation : '4-3-3';
-        state.slots = createEmptySlots(state.formation);
-
-        Object.entries(data.slots || {}).forEach(([slotKey, ids]) => {
-          if (!state.slots[slotKey]) return;
-          const valid = (Array.isArray(ids) ? ids : []).map(String).filter(id => playerMap.has(id));
-          state.slots[slotKey].starter = valid[0] || null;
-          state.slots[slotKey].subs = valid.slice(1);
-        });
-      } catch {
-        state.formation = '4-3-3';
-        state.slots = createEmptySlots(state.formation);
-      }
-      formationSelect.value = state.formation;
-      render();
-    }
-
-    function toServerSlots() {
-      const out = {};
-      Object.entries(state.slots).forEach(([k, slot]) => {
-        out[k] = [slot.starter, ...slot.subs].filter(Boolean).map(Number);
-      });
-      return out;
-    }
-
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-      const payload = { date: scheduleId, formation: state.formation, slots: toServerSlots() };
-      const res = await fetch('/api/lineup/save', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-      });
-      alert(res.ok ? 'Đã lưu lineup lên server.' : 'Lưu lineup thất bại.');
-    });
-
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      if (!confirm('Reset toàn bộ lineup hiện tại?')) return;
-      state.slots = createEmptySlots(state.formation);
-      render();
-    });
-
-    function normalizeStadium(name) {
-      return (name || '')
-        .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .toUpperCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^A-Z0-9_]/g, '');
-    }
-
-    document.getElementById('saveImageBtn').addEventListener('click', async () => {
-      const target = document.querySelector('.workspace');
-      const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: null });
-      const link = document.createElement('a');
-      const dateRaw = '{{ schedule.date }}';
-      const [y,m,d] = dateRaw.split('-');
-      const datePart = `${d || '00'}${m || '00'}${y || '0000'}`;
-      const stadiumPart = normalizeStadium('{{ schedule.field }}') || 'STADIUM';
-      link.download = `${datePart}_${stadiumPart}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-
-    loadLineupFromServer();
-
-    .pitch {
-      position: relative;
-      min-height: 760px;
-      border-radius: 18px;
-      overflow: hidden;
-      background:
-        repeating-linear-gradient(
-          0deg,
-          #1b8b43 0,
-          #1b8b43 42px,
-          #1f9d4c 42px,
-          #1f9d4c 84px
-        );
-      border: 3px solid rgba(255,255,255,.75);
-      box-shadow: inset 0 0 0 3px rgba(255,255,255,.25);
-      padding: 18px;
-      display: grid;
-      grid-template-rows: repeat(var(--rows, 4), 1fr);
-      gap: 14px;
-    }
-
-    .pitch::before,
-    .pitch::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 2px solid rgba(255,255,255,.85);
-      pointer-events: none;
-    }
-
-    .pitch::before { top: 50%; width: 95%; }
-    .pitch::after {
-      top: 50%;
-      width: 130px;
-      height: 130px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .line {
-      display: grid;
-      gap: 12px;
-      align-items: center;
-      justify-items: center;
-      z-index: 1;
-    }
-
-    .position-slot {
-      width: min(210px, 100%);
-      min-height: 150px;
-      border: 1px dashed rgba(255,255,255,.45);
-      border-radius: 12px;
-      background: rgba(0,0,0,.15);
-      backdrop-filter: blur(2px);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 6px;
-      padding: 8px;
-      transition: .2s;
-    }
-
-    .position-slot.drop-active {
-      transform: translateY(-2px);
-      border-color: var(--accent-2);
-      box-shadow: 0 8px 20px rgba(0,0,0,.35);
-      background: rgba(3, 61, 88, 0.35);
-    }
-
-    .position-label {
-      text-align: center;
-      font-weight: 700;
-      font-size: 12px;
-      color: #f4f8ff;
-      letter-spacing: .4px;
-    }
-
-    .starter-slot {
-      min-height: 72px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px dashed rgba(255,255,255,.25);
-      padding: 6px;
-    }
-
-    .starter-slot.empty::after {
-      content: "Thả đá chính";
-      color: rgba(255,255,255,.7);
-      font-size: 12px;
-    }
-
-    .starter-avatar {
-      width: 62px;
-      height: 62px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #fff;
-      box-shadow: 0 8px 20px rgba(0,0,0,.35);
-      cursor: grab;
-      background: #fff;
-    }
-
-    .subs-slot {
-      min-height: 36px;
-      border-top: 1px solid rgba(255,255,255,.18);
-      padding-top: 6px;
-      display: grid;
-      gap: 5px;
-      align-content: start;
-    }
-
-    .sub-tag {
-      font-size: 11px;
-      border: 1px solid rgba(255,255,255,.35);
-      background: rgba(0,0,0,.28);
-      border-radius: 999px;
-      padding: 4px 8px;
-      width: fit-content;
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: grab;
-    }
-
-    .sub-drop-target {
-      height: 8px;
-      border-radius: 999px;
-      background: transparent;
-      border: 1px dashed transparent;
-      transition: .15s;
-    }
-
-    .sub-drop-target.drop-active {
-      border-color: var(--accent);
-      background: rgba(84,209,122,.3);
-    }
-
-    @media (max-width: 1100px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar { position: static; max-height: none; }
-      .pitch { min-height: 680px; }
-    }
-  </style>
-</head>
-<body>
-  <div class="app">
-    <aside class="panel sidebar" id="sidebarDropZone">
-      <h2>Danh sách cầu thủ</h2>
-      <p class="hint">Kéo thả vào sân để xếp đội hình. Kéo ngược về đây để xoá khỏi sân.</p>
-      <div class="bench-drop" id="benchDrop">Thả vào đây để đưa cầu thủ về danh sách</div>
-      <div class="player-list" id="playerList"></div>
-    </aside>
-
-    <main class="panel workspace">
-      <div class="toolbar">
-        <div class="title">
-          <h1>Coach Mode: {{ schedule.date }} {{ schedule.time }}</h1>
-          <p>🏟️ {{ schedule.field }} {% if schedule.map %}• <a href="{{ schedule.map }}" target="_blank" style="color:#9cd6ff">Bản đồ</a>{% endif %}</p>
-        </div>
-        <div class="controls">
-          <label for="formationSelect">Sơ đồ:</label>
-          <select id="formationSelect">
-            <option value="4-3-3">4-3-3</option>
-            <option value="4-2-3-1">4-2-3-1</option>
-            <option value="4-4-2">4-4-2</option>
-            <option value="3-5-2">3-5-2</option>
-            <option value="5-3-2">5-3-2</option>
-          </select>
-          <button class="btn-success" id="saveBtn">Lưu local</button>
-          <button id="clearBtn">Xoá đội hình</button>
-          <button class="btn-primary" onclick="window.location.href='/register/{{ schedule.id }}'">↩ Quay lại đăng ký</button>
-        </div>
-      </div>
-
-      <section class="pitch" id="pitch"></section>
-    </main>
-  </div>
-
-  <script>
-    // ==============================
-    // Formation configuration
-    // ==============================
-    const FORMATIONS = {
-      "4-3-3": [
-        ["GK"],
-        ["LB", "CB", "CB", "RB"],
-        ["CM", "CM", "CM"],
-        ["LW", "ST", "RW"]
-      ],
-      "4-2-3-1": [
-        ["GK"],
-        ["LB", "CB", "CB", "RB"],
-        ["CDM", "CDM"],
-        ["LAM", "CAM", "RAM"],
-        ["ST"]
-      ],
-      "4-4-2": [
-        ["GK"],
-        ["LB", "CB", "CB", "RB"],
-        ["LM", "CM", "CM", "RM"],
-        ["ST", "ST"]
-      ],
-      "3-5-2": [
-        ["GK"],
-        ["CB", "CB", "CB"],
-        ["LWB", "CM", "CM", "CM", "RWB"],
-        ["ST", "ST"]
-      ],
-      "5-3-2": [
-        ["GK"],
-        ["LWB", "CB", "CB", "CB", "RWB"],
-        ["CM", "CM", "CM"],
-        ["ST", "ST"]
-      ]
-    };
-
-    // ==============================
-    // Data & state management
-    // ==============================
-    const allPlayers = {{ all_joined_players | tojson }};
-    const playerMap = new Map(allPlayers.map(p => [String(p.id), p]));
-    const storageKey = `coach_lineup_{{ schedule.id }}`;
-
-    const state = {
-      formation: "4-3-3",
-      slots: {}
-    };
-
-    function createEmptySlots(formationName) {
-      const slots = {};
-      FORMATIONS[formationName].flat().forEach((pos, idx) => {
-        const key = `${pos}_${idx + 1}`;
-        slots[key] = { label: pos, starter: null, subs: [] };
-      });
-      return slots;
-    }
-
-    function removePlayerFromAll(playerId) {
-      Object.values(state.slots).forEach(slot => {
-        if (slot.starter === playerId) slot.starter = null;
-        slot.subs = slot.subs.filter(id => id !== playerId);
-      });
-    }
-
-    function assignToStarter(slotKey, playerId) {
-      const slot = state.slots[slotKey];
-      if (!slot) return;
-      removePlayerFromAll(playerId);
-
-      if (!slot.starter) {
-        slot.starter = playerId;
-      } else {
-        slot.subs.push(playerId);
-      }
-    }
-
-    function assignToSubs(slotKey, playerId, insertIndex = null) {
-      const slot = state.slots[slotKey];
-      if (!slot) return;
-
-      removePlayerFromAll(playerId);
-      if (insertIndex === null || insertIndex > slot.subs.length) {
-        slot.subs.push(playerId);
-      } else {
-        slot.subs.splice(insertIndex, 0, playerId);
-      }
-    }
-
-    function saveLocal() {
-      localStorage.setItem(storageKey, JSON.stringify(state));
-    }
-
-    function loadLocal() {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return false;
-      try {
-        const parsed = JSON.parse(raw);
-        if (!FORMATIONS[parsed.formation]) return false;
-        state.formation = parsed.formation;
-        state.slots = createEmptySlots(state.formation);
-
-        Object.entries(parsed.slots || {}).forEach(([k, v]) => {
-          if (!state.slots[k]) return;
-          state.slots[k].starter = v.starter && playerMap.has(v.starter) ? v.starter : null;
-          state.slots[k].subs = (v.subs || []).filter(id => playerMap.has(id));
-        });
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    // ==============================
-    // Rendering
-    // ==============================
-    const formationSelect = document.getElementById("formationSelect");
-    const pitch = document.getElementById("pitch");
-    const playerList = document.getElementById("playerList");
-    const benchDrop = document.getElementById("benchDrop");
-
-    function getPlayerImage(player) {
-      return `/static/players/${player.id}.jpg`;
-    }
-
-    function createDragPayload(playerId, sourceType, slotKey = null, subIndex = null) {
-      return JSON.stringify({ playerId, sourceType, slotKey, subIndex });
-    }
-
-    function parsePayload(ev) {
-      try {
-        return JSON.parse(ev.dataTransfer.getData("text/plain"));
-      } catch {
-        return null;
-      }
-    }
-
-    function renderSidebar() {
-      const assignedIds = new Set();
-      Object.values(state.slots).forEach(slot => {
-        if (slot.starter) assignedIds.add(slot.starter);
-        slot.subs.forEach(id => assignedIds.add(id));
-      });
-
-      playerList.innerHTML = "";
-      allPlayers.forEach(player => {
-        const id = String(player.id);
-        const card = document.createElement("div");
-        card.className = `player-card ${assignedIds.has(id) ? "assigned" : ""}`;
-        card.draggable = true;
-        card.dataset.playerId = id;
-        card.innerHTML = `
-          <img src="${getPlayerImage(player)}" alt="${player.name}" onerror="this.src='{{ url_for('static', filename='images/logo.png') }}'">
-          <div class="player-meta">
-            <div class="name">${player.name}</div>
-            <div class="no">#${player.number || 0}</div>
-          </div>
-        `;
-
-        card.addEventListener("dragstart", e => {
-          e.dataTransfer.setData("text/plain", createDragPayload(id, "sidebar"));
-          e.dataTransfer.effectAllowed = "move";
-        });
-
-        playerList.appendChild(card);
-      });
-    }
-
-    function renderPitch() {
-      pitch.innerHTML = "";
-      const lines = FORMATIONS[state.formation];
-      pitch.style.setProperty("--rows", lines.length);
-
-      let slotCounter = 0;
-      lines.forEach(line => {
-        const lineEl = document.createElement("div");
-        lineEl.className = "line";
-        lineEl.style.gridTemplateColumns = `repeat(${line.length}, minmax(120px, 1fr))`;
-
-        line.forEach(pos => {
-          slotCounter += 1;
-          const slotKey = `${pos}_${slotCounter}`;
-          const slotData = state.slots[slotKey] || { label: pos, starter: null, subs: [] };
-
-          const slot = document.createElement("div");
-          slot.className = "position-slot";
-          slot.dataset.slotKey = slotKey;
-
-          slot.innerHTML = `<div class="position-label">${pos}</div>`;
-
-          // Starter zone
-          const starterZone = document.createElement("div");
-          starterZone.className = "starter-slot";
-          starterZone.dataset.zone = "starter";
-          if (!slotData.starter) starterZone.classList.add("empty");
-
-          starterZone.addEventListener("dragover", ev => {
-            ev.preventDefault();
-            slot.classList.add("drop-active");
-          });
-          starterZone.addEventListener("dragleave", () => slot.classList.remove("drop-active"));
-          starterZone.addEventListener("drop", ev => {
-            ev.preventDefault();
-            slot.classList.remove("drop-active");
-            const payload = parsePayload(ev);
-            if (!payload || !playerMap.has(payload.playerId)) return;
-            assignToStarter(slotKey, payload.playerId);
-            render();
-          });
-
-          if (slotData.starter && playerMap.has(slotData.starter)) {
-            const p = playerMap.get(slotData.starter);
-            const avatar = document.createElement("img");
-            avatar.className = "starter-avatar";
-            avatar.src = getPlayerImage(p);
-            avatar.alt = p.name;
-            avatar.draggable = true;
-            avatar.onerror = function () { this.src = "{{ url_for('static', filename='images/logo.png') }}"; };
-            avatar.title = `#${p.number || 0} ${p.name}`;
-            avatar.addEventListener("dragstart", e => {
-              e.dataTransfer.setData("text/plain", createDragPayload(slotData.starter, "starter", slotKey));
-            });
-            starterZone.appendChild(avatar);
-          }
-
-          // Subs zone
-          const subsZone = document.createElement("div");
-          subsZone.className = "subs-slot";
-          subsZone.dataset.zone = "subs";
-
-          const addSubDropTarget = (index) => {
-            const target = document.createElement("div");
-            target.className = "sub-drop-target";
-            target.dataset.insertIndex = String(index);
-            target.addEventListener("dragover", ev => {
-              ev.preventDefault();
-              target.classList.add("drop-active");
-              slot.classList.add("drop-active");
-            });
-            target.addEventListener("dragleave", () => {
-              target.classList.remove("drop-active");
-              slot.classList.remove("drop-active");
-            });
-            target.addEventListener("drop", ev => {
-              ev.preventDefault();
-              target.classList.remove("drop-active");
-              slot.classList.remove("drop-active");
-              const payload = parsePayload(ev);
-              if (!payload || !playerMap.has(payload.playerId)) return;
-              assignToSubs(slotKey, payload.playerId, index);
-              render();
-            });
-            subsZone.appendChild(target);
-          };
-
-          addSubDropTarget(0);
-          slotData.subs.forEach((subId, idx) => {
-            if (!playerMap.has(subId)) return;
-            const p = playerMap.get(subId);
-            const tag = document.createElement("div");
-            tag.className = "sub-tag";
-            tag.textContent = `#${p.number || 0} ${p.name}`;
-            tag.draggable = true;
-            tag.addEventListener("dragstart", e => {
-              e.dataTransfer.setData("text/plain", createDragPayload(subId, "sub", slotKey, idx));
-            });
-            subsZone.appendChild(tag);
-            addSubDropTarget(idx + 1);
-          });
-
-          slot.appendChild(starterZone);
-          slot.appendChild(subsZone);
-          lineEl.appendChild(slot);
-        });
-
-        pitch.appendChild(lineEl);
-      });
-    }
-
-    function render() {
+    function render(){
+      document.getElementById('formationBadge').textContent=state.formation;
+      renderSpecialSlots();
       renderPitch();
       renderSidebar();
     }
 
-    // ==============================
-    // Drag back to sidebar (remove)
-    // ==============================
-    [benchDrop, document.getElementById("sidebarDropZone")].forEach(el => {
-      el.addEventListener("dragover", ev => {
-        ev.preventDefault();
-        benchDrop.classList.add("drop-active");
-      });
-      el.addEventListener("dragleave", () => benchDrop.classList.remove("drop-active"));
-      el.addEventListener("drop", ev => {
-        ev.preventDefault();
-        benchDrop.classList.remove("drop-active");
-        const payload = parsePayload(ev);
-        if (!payload || !playerMap.has(payload.playerId)) return;
-        removePlayerFromAll(payload.playerId);
-        render();
-      });
+    [benchDrop, document.getElementById('sidebarDropZone')].forEach(el=>{
+      el.addEventListener('dragover',e=>{e.preventDefault(); benchDrop.classList.add('drop-active');});
+      el.addEventListener('dragleave',()=>benchDrop.classList.remove('drop-active'));
+      el.addEventListener('drop',e=>{ e.preventDefault(); benchDrop.classList.remove('drop-active'); const p=parsePayload(e); if(!p||!playerMap.has(p.playerId)) return; removePlayerFromAllPositions(p.playerId); render(); });
     });
 
-    // ==============================
-    // Controls
-    // ==============================
-    formationSelect.addEventListener("change", () => {
-      state.formation = formationSelect.value;
-      state.slots = createEmptySlots(state.formation); // reset assignments on switch
-      render();
-      saveLocal();
+    formationSelect.addEventListener('change',()=>{ state.formation=formationSelect.value; state.slots=createEmptySlots(state.formation); render(); });
+
+    function toServerSlots(){
+      const out={};
+      Object.entries(state.slots).forEach(([k,s])=>{ out[k]=[s.starter,...s.subs].filter(Boolean).map(Number); });
+      if(state.special.COACH) out.COACH=[Number(state.special.COACH)];
+      if(state.special['CLUB OWNER']) out['CLUB OWNER']=[Number(state.special['CLUB OWNER'])];
+      return out;
+    }
+
+    async function loadLineup(){
+      try{
+        const res=await fetch(`/api/lineup/${scheduleId}`); if(!res.ok) throw new Error();
+        const data=await res.json();
+        state.formation=FORMATIONS[data.formation]?data.formation:'4-3-3';
+        state.slots=createEmptySlots(state.formation);
+        state.special={ COACH:null, 'CLUB OWNER':null };
+        Object.entries(data.slots||{}).forEach(([k,arr])=>{
+          const ids=(Array.isArray(arr)?arr:[]).map(String).filter(id=>playerMap.has(id));
+          if(k==='COACH'){ state.special.COACH=ids[0]||null; return; }
+          if(k==='CLUB OWNER'){ state.special['CLUB OWNER']=ids[0]||null; return; }
+          if(!state.slots[k]) return;
+          state.slots[k].starter=ids[0]||null; state.slots[k].subs=ids.slice(1);
+        });
+      }catch{ state.formation='4-3-3'; state.slots=createEmptySlots('4-3-3'); state.special={ COACH:null, 'CLUB OWNER':null }; }
+      formationSelect.value=state.formation; render();
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async ()=>{
+      const payload={ date:scheduleId, formation:state.formation, slots:toServerSlots() };
+      const res=await fetch('/api/lineup/save',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+      alert(res.ok?'Đã lưu lineup lên server.':'Lưu lineup thất bại.');
     });
 
-    document.getElementById("saveBtn").addEventListener("click", () => {
-      saveLocal();
-      alert("Đã lưu đội hình vào localStorage.");
+    document.getElementById('clearBtn').addEventListener('click',()=>{ if(!confirm('Reset toàn bộ lineup hiện tại?')) return; state.slots=createEmptySlots(state.formation); state.special={ COACH:null, 'CLUB OWNER':null }; render(); });
+
+    function normalizeStadium(name){ return (name||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/đ/g,'d').replace(/Đ/g,'D').toUpperCase().replace(/\s+/g,'_').replace(/[^A-Z0-9_]/g,''); }
+    document.getElementById('saveImageBtn').addEventListener('click', async ()=>{
+      const target=document.getElementById('lineupCaptureArea');
+      const canvas=await html2canvas(target,{ scale:2, useCORS:true, backgroundColor:null });
+      const link=document.createElement('a');
+      const [y,m,d]=('{{ schedule.date }}').split('-');
+      link.download=`${d||'00'}${m||'00'}${y||'0000'}_${normalizeStadium('{{ schedule.field }}')||'STADIUM'}.png`;
+      link.href=canvas.toDataURL('image/png');
+      link.click();
     });
 
-    document.getElementById("clearBtn").addEventListener("click", () => {
-      if (!confirm("Xóa toàn bộ đội hình hiện tại?")) return;
-      state.slots = createEmptySlots(state.formation);
-      render();
-      saveLocal();
-    });
-
-    // ==============================
-    // Boot
-    // ==============================
-    (function init() {
-      state.formation = "4-3-3";
-      state.slots = createEmptySlots(state.formation);
-
-      if (loadLocal()) {
-        formationSelect.value = state.formation;
-      } else {
-        formationSelect.value = "4-3-3";
-      }
-
-      render();
-    })();
-
-
+    loadLineup();
   </script>
 </body>
 </html>

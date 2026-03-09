@@ -23,6 +23,8 @@ static/uploads/*
 !static/uploads/avatars/.gitkeep
 !static/uploads/lineups/
 !static/uploads/lineups/.gitkeep
+!static/uploads/players/
+!static/uploads/players/.gitkeep
 
 # Disallow binary image/database artifacts
 *.png

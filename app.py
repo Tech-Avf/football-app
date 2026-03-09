@@ -585,6 +585,7 @@ def admin_players():
                 "number": int(request.form.get("new_number", 0) or 0),
                 "position": ",".join(request.form.getlist("new_position")),
                 "stt": int(request.form.get("new_stt", 0) or 0),
+                "avatar_url": "/static/avatar-default.svg",
                 "avatar": "/static/avatar-default.svg",
                 "deleted": False
             }
@@ -701,11 +702,11 @@ def coach_mode(date):
                     "name": player["name"],
                     "number": player["number"],
                     "position": player["position"],
-                    "avatar": player.get("avatar", "/static/avatar-default.svg")
+                    "avatar_url": player.get("avatar_url") or player.get("avatar") or "/static/avatar-default.svg"
                 })
 
     for p in joined_players:
-        p.setdefault("avatar", "/static/avatar-default.svg")
+        p["avatar_url"] = p.get("avatar_url") or p.get("avatar") or "/static/avatar-default.svg"
 
     return render_template(
         "coach_mode.html",
@@ -840,28 +841,22 @@ def upload_avatar(player_id):
     if ext not in mime_map:
         return "Định dạng ảnh không hợp lệ", 400
 
-
-    os.makedirs('uploads', exist_ok=True)
-    filename = f"player_{player_id}_{int(time.time())}{ext}"
-    save_path = os.path.join('uploads', filename)
-    file.save(save_path)
-
-    raw = file.read()
-    if not raw:
-        return "File rỗng", 400
-
-    encoded = base64.b64encode(raw).decode('utf-8')
-    data_url = f"data:{mime_map[ext]};base64,{encoded}"
-
-
+    os.makedirs(os.path.join('static', 'uploads', 'players'), exist_ok=True)
     data = load_data()
     player = next((p for p in data.get('players', []) if p.get('id') == player_id), None)
+
+    if player and player.get('name'):
+        safe_name = "_".join(player.get('name', '').strip().lower().split())
+    else:
+        safe_name = f"player_{player_id}"
+
+    filename = f"{safe_name}_{player_id}{ext}"
+    save_path = os.path.join('static', 'uploads', 'players', filename)
+    file.save(save_path)
+
     if player:
-
-        player['avatar'] = f"/uploads/{filename}"
-
-        player['avatar'] = data_url
-
+        player['avatar_url'] = f"/static/uploads/players/{filename}"
+        player['avatar'] = player['avatar_url']  # tương thích dữ liệu cũ
         save_data(data)
 
     return redirect(url_for('admin_players'))
