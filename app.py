@@ -359,9 +359,9 @@ def register(date):
 
     # ----------- Xử lý POST (người bấm nút lưu) -----------
     if request.method == "POST":
-        for player in players:
-            pid = str(player["id"])
-            current = statuses.get(pid, {})
+        # Chỉ cập nhật những người đã thuộc status của buổi này để tránh
+        # tự động thêm thành viên mới vào các schedule cũ.
+        for pid, current in list(statuses.items()):
             lock_time = current.get("locked_at", 0)
             is_player_locked = bool(lock_time and (now - lock_time >= LOCK_DURATION))
 
@@ -412,8 +412,15 @@ def register(date):
         except (ValueError, TypeError):
             return 9999  # nếu không có số thứ tự, cho ra cuối
    
-    # Sắp xếp players theo số thứ tự (number)
-    players_sorted = sorted(players, key=safe_stt)
+    # Chỉ hiển thị người đang có trong danh sách đăng ký của buổi này
+    # (không lọc theo deleted để giữ nguyên dữ liệu lịch sử)
+    registered_players = [
+        p for p in players
+        if str(p.get("id")) in statuses
+    ]
+
+    # Sắp xếp players theo số thứ tự (stt)
+    players_sorted = sorted(registered_players, key=safe_stt)
 
     return render_template(
         "register.html",
@@ -490,13 +497,16 @@ def create():
             locked_at_local = vn_tz.localize(locked_at_naive)
             locked_at = int(locked_at_local.astimezone(pytz.utc).timestamp())
 
+        # Danh sách đăng ký của buổi mới phải lấy từ quản lý thành viên hiện tại
+        # (chỉ gồm thành viên còn hoạt động, không lấy từ buổi đăng ký trước đó)
+        active_players = [p for p in data.get("players", []) if not p.get("deleted")]
         status = {
             str(player["id"]): {
                 "state": "",
                 "note": "",
                 "reason": "",
                 "locked_at": 0
-            } for player in data.get("players", [])
+            } for player in active_players
         }
 
         data["schedules"].append({
@@ -520,13 +530,10 @@ def create():
 def admin_players():
     data = load_data()
     players = data.get("players", [])
-    schedules = data.get("schedules", [])
-    today = datetime.now().date()
 
     if request.method == "POST":
         print("==> FORM:", request.form)
         form_keys = list(request.form.keys())
-        new_players = []
 
         # --- Cập nhật thông tin cầu thủ cũ ---
         for p in players:
@@ -550,30 +557,10 @@ def admin_players():
                 "deleted": False
             }
             players.append(new_player)
-            new_players.append(new_player)
 
-        # --- Thêm cầu thủ mới vào TRẬN TƯƠNG LAI chưa có kết quả ---
-        for s in schedules:
-            match_date_str = s.get("date", "")
-            result = s.get("result", None)
-            try:
-                match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
-            except Exception:
-                continue
-
-            # ❌ Bỏ qua trận cũ hoặc đã có kết quả
-            if match_date < today or result:
-                continue
-
-            # ✅ Thêm cầu thủ mới vào trận sắp tới
-            s.setdefault("status", {})
-            for np in new_players:
-                s["status"][str(np["id"])] = {
-                    "state": "",
-                    "note": "",
-                    "reason": "",
-                    "locked_at": 0
-                }
+        # Không tự động thêm cầu thủ mới vào các schedule đã tồn tại.
+        # Cầu thủ mới chỉ xuất hiện trong schedule tạo mới (/create)
+        # hoặc khi admin chủ động thêm vào từng buổi.
 
         data["players"] = players
         save_data(data)
@@ -587,29 +574,11 @@ def admin_players():
 def delete_player(player_id):
     data = load_data()
     players = data.get("players", [])
-    schedules = data.get("schedules", [])
-    today = datetime.now().date()
 
-    # Ẩn cầu thủ (không xóa hoàn toàn)
+    # Ẩn cầu thủ trong danh sách quản lý thành viên (không xoá khỏi các schedule đã có)
     deleted_player = next((p for p in players if p["id"] == player_id), None)
     if deleted_player:
         deleted_player["deleted"] = True
-
-    # Xóa khỏi các trận tương lai chưa có kết quả
-    for s in schedules:
-        match_date_str = s.get("date", "")
-        result = s.get("result", None)
-        try:
-            match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
-        except Exception:
-            continue
-
-        # ❌ Bỏ qua trận đã diễn ra hoặc đã có kết quả
-        if match_date < today or result:
-            continue
-
-        # ✅ Xóa khỏi các trận tương lai chưa có kết quả
-        s.get("status", {}).pop(str(player_id), None)
 
     data["players"] = players
     save_data(data)
