@@ -554,6 +554,7 @@ def admin_players():
                 "number": int(request.form.get("new_number", 0) or 0),
                 "position": ",".join(request.form.getlist("new_position")),
                 "stt": int(request.form.get("new_stt", 0) or 0),
+                "avatar": "/static/avatar-default.svg",
                 "deleted": False
             }
             players.append(new_player)
@@ -668,8 +669,12 @@ def coach_mode(date):
                     "id": player["id"],
                     "name": player["name"],
                     "number": player["number"],
-                    "position": player["position"]
+                    "position": player["position"],
+                    "avatar": player.get("avatar", "/static/avatar-default.svg")
                 })
+
+    for p in joined_players:
+        p.setdefault("avatar", "/static/avatar-default.svg")
 
     return render_template(
         "coach_mode.html",
@@ -738,19 +743,104 @@ def toggle_popup(index):
     return redirect(url_for('announcements', admin=1))
 
 # ================== LINEUP ==================
+@app.route('/api/lineup/<date>')
+def api_get_lineup(date):
+    data = load_data()
+    schedule = next((s for s in data.get("schedules", []) if s.get("id") == date or s.get("date") == date), None)
+    if not schedule:
+        return jsonify({"formation": "4-3-3", "slots": {}}), 404
+
+    lineup = schedule.get("lineup")
+    if not lineup:
+        # fallback tương thích cũ
+        lineup = data.get("lineups", {}).get(date, {})
+
+    return jsonify({
+        "formation": lineup.get("formation", "4-3-3") if isinstance(lineup, dict) else "4-3-3",
+        "slots": lineup.get("slots", {}) if isinstance(lineup, dict) else {}
+    })
+
+
+@app.route('/api/lineup/save', methods=['POST'])
+def api_save_lineup():
+    payload = request.get_json(silent=True) or {}
+    date = payload.get("date")
+    formation = payload.get("formation", "4-3-3")
+    slots = payload.get("slots", {})
+
+    if not date:
+        return jsonify({"error": "missing date"}), 400
+
+    data = load_data()
+    schedule = next((s for s in data.get("schedules", []) if s.get("id") == date or s.get("date") == date), None)
+    if not schedule:
+        return jsonify({"error": "schedule not found"}), 404
+
+    schedule["lineup"] = {
+        "formation": formation,
+        "slots": slots
+    }
+
+    # giữ tương thích ngược nếu code cũ còn đọc key lineups
+    data.setdefault("lineups", {})
+    data["lineups"][date] = schedule["lineup"]
+
+    save_data(data)
+    return jsonify({"status": "ok"})
+
+
+@app.route('/admin/upload_avatar/<int:player_id>', methods=['POST'])
+def upload_avatar(player_id):
+    file = request.files.get('avatar')
+    if not file or not file.filename:
+        return redirect(url_for('admin_players'))
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    mime_map = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp'
+    }
+    if ext not in mime_map:
+        return "Định dạng ảnh không hợp lệ", 400
+
+    raw = file.read()
+    if not raw:
+        return "File rỗng", 400
+
+    encoded = base64.b64encode(raw).decode('utf-8')
+    data_url = f"data:{mime_map[ext]};base64,{encoded}"
+
+    data = load_data()
+    player = next((p for p in data.get('players', []) if p.get('id') == player_id), None)
+    if player:
+        player['avatar'] = data_url
+        save_data(data)
+
+    return redirect(url_for('admin_players'))
+
+
+# backward compatibility routes
 @app.route('/get_lineup/<schedule_id>')
 def get_lineup(schedule_id):
-    data = load_data()
-    lineup = data.get('lineups', {}).get(schedule_id, {})
-    return jsonify(lineup)
+    return api_get_lineup(schedule_id)
+
 
 @app.route('/save_lineup/<schedule_id>', methods=['POST'])
 def save_lineup(schedule_id):
-    lineup_data = request.json
+    payload = request.get_json(silent=True) or {}
     data = load_data()
-    if 'lineups' not in data:
-        data['lineups'] = {}
-    data['lineups'][schedule_id] = lineup_data
+    schedule = next((s for s in data.get("schedules", []) if s.get("id") == schedule_id or s.get("date") == schedule_id), None)
+    if not schedule:
+        return jsonify({"error": "schedule not found"}), 404
+
+    schedule["lineup"] = {
+        "formation": payload.get("formation", "4-3-3"),
+        "slots": payload.get("slots", {})
+    }
+    data.setdefault("lineups", {})
+    data["lineups"][schedule_id] = schedule["lineup"]
     save_data(data)
     return jsonify({'status': 'ok'})
 
