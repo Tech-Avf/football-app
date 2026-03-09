@@ -35,6 +35,9 @@ static/uploads/*
 *.db
 *.sqlite
 
+
 # Root uploads runtime folder
 uploads/*
 !uploads/.keep
+
+
