@@ -15,6 +15,7 @@
       --accent-2: #33b2ff;
       --danger: #ff6b6b;
       --line: rgba(255, 255, 255, 0.2);
+
     }
 
     * { box-sizing: border-box; }
@@ -62,6 +63,7 @@
       margin: 0;
       color: var(--muted);
       font-size: 12px;
+
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(circle at top, #1f2b4d 0%, var(--bg) 45%); color: var(--text); min-height: 100vh; }
@@ -137,6 +139,8 @@
   </div>
 
 
+
+
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
     const FORMATIONS = {
@@ -170,6 +174,244 @@
       opt.textContent = f;
       formationSelect.appendChild(opt);
     });
+
+
+    function createEmptySlots(formationName) {
+      const slots = {};
+      const counters = {};
+      FORMATIONS[formationName].flat().forEach(pos => {
+        counters[pos] = (counters[pos] || 0) + 1;
+        const key = `${pos}${counters[pos] > 1 ? counters[pos] : ''}`;
+        slots[key] = { label: key, starter: null, subs: [] };
+      });
+      return slots;
+    }
+
+    function removePlayerFromAll(playerId) {
+      Object.values(state.slots).forEach(slot => {
+        if (slot.starter === playerId) slot.starter = null;
+        slot.subs = slot.subs.filter(id => id !== playerId);
+      });
+    }
+
+    function assignToStarter(slotKey, playerId) {
+      const slot = state.slots[slotKey];
+      if (!slot) return;
+      removePlayerFromAll(playerId);
+      if (!slot.starter) slot.starter = playerId;
+      else slot.subs.push(playerId);
+    }
+
+    function assignToSubs(slotKey, playerId, insertIndex = null) {
+      const slot = state.slots[slotKey];
+      if (!slot) return;
+      removePlayerFromAll(playerId);
+      if (insertIndex === null || insertIndex > slot.subs.length) slot.subs.push(playerId);
+      else slot.subs.splice(insertIndex, 0, playerId);
+    }
+
+    function getAvatar(player) {
+      return (player && player.avatar) ? player.avatar : fallbackAvatar;
+    }
+
+    function makePayload(playerId, sourceType, slotKey = null, subIndex = null) {
+      return JSON.stringify({ playerId, sourceType, slotKey, subIndex });
+    }
+
+    function parsePayload(ev) {
+      try { return JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return null; }
+    }
+
+    function renderSidebar() {
+      const assigned = new Set();
+      Object.values(state.slots).forEach(slot => {
+        if (slot.starter) assigned.add(slot.starter);
+        slot.subs.forEach(id => assigned.add(id));
+      });
+      playerList.innerHTML = '';
+      allPlayers.forEach(player => {
+        const card = document.createElement('div');
+        card.className = `player-card ${assigned.has(player.id) ? 'assigned' : ''}`;
+        card.draggable = true;
+        card.innerHTML = `
+          <img src="${getAvatar(player)}" alt="${player.name}" onerror="this.src='${fallbackAvatar}'">
+          <div class="player-meta"><div class="name">${player.name}</div><div class="no">#${player.number || 0}</div></div>`;
+        card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(player.id, 'sidebar')));
+        playerList.appendChild(card);
+      });
+    }
+
+    function renderPitch() {
+      pitch.innerHTML = '';
+      const lines = FORMATIONS[state.formation];
+      pitch.style.setProperty('--rows', lines.length);
+
+      const counters = {};
+      lines.forEach(line => {
+        const lineEl = document.createElement('div');
+        lineEl.className = 'line';
+        lineEl.style.gridTemplateColumns = `repeat(${line.length}, minmax(120px, 1fr))`;
+
+        line.forEach(pos => {
+          counters[pos] = (counters[pos] || 0) + 1;
+          const slotKey = `${pos}${counters[pos] > 1 ? counters[pos] : ''}`;
+          if (!state.slots[slotKey]) state.slots[slotKey] = { label: slotKey, starter: null, subs: [] };
+          const slotData = state.slots[slotKey];
+
+          const slot = document.createElement('div');
+          slot.className = 'position-slot';
+          slot.innerHTML = `<div class="position-label">${slotKey}</div>`;
+
+          const starterZone = document.createElement('div');
+          starterZone.className = 'starter-slot';
+          if (!slotData.starter) starterZone.classList.add('empty');
+          starterZone.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drop-active'); });
+          starterZone.addEventListener('dragleave', () => slot.classList.remove('drop-active'));
+          starterZone.addEventListener('drop', e => {
+            e.preventDefault(); slot.classList.remove('drop-active');
+            const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
+            assignToStarter(slotKey, payload.playerId); render();
+          });
+
+          if (slotData.starter && playerMap.has(slotData.starter)) {
+            const p = playerMap.get(slotData.starter);
+            const wrap = document.createElement('div');
+            wrap.style.textAlign = 'center';
+            const avatar = document.createElement('img');
+            avatar.className = 'starter-avatar';
+            avatar.src = getAvatar(p);
+            avatar.onerror = function () { this.src = fallbackAvatar; };
+            avatar.draggable = true;
+            avatar.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(slotData.starter, 'starter', slotKey)));
+            const name = document.createElement('div');
+            name.className = 'starter-name';
+            name.textContent = `#${p.number || 0} ${p.name}`;
+            wrap.appendChild(avatar); wrap.appendChild(name);
+            starterZone.appendChild(wrap);
+          }
+
+          const subsZone = document.createElement('div');
+          subsZone.className = 'subs-slot';
+          const addTarget = (index) => {
+            const target = document.createElement('div');
+            target.className = 'sub-drop-target';
+            target.addEventListener('dragover', e => { e.preventDefault(); target.classList.add('drop-active'); slot.classList.add('drop-active'); });
+            target.addEventListener('dragleave', () => { target.classList.remove('drop-active'); slot.classList.remove('drop-active'); });
+            target.addEventListener('drop', e => {
+              e.preventDefault(); target.classList.remove('drop-active'); slot.classList.remove('drop-active');
+              const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
+              assignToSubs(slotKey, payload.playerId, index); render();
+            });
+            subsZone.appendChild(target);
+          };
+
+          addTarget(0);
+          slotData.subs.forEach((id, idx) => {
+            const p = playerMap.get(id); if (!p) return;
+            const tag = document.createElement('div');
+            tag.className = 'sub-tag';
+            tag.textContent = `#${p.number || 0} ${p.name}`;
+            tag.draggable = true;
+            tag.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', makePayload(id, 'sub', slotKey, idx)));
+            subsZone.appendChild(tag);
+            addTarget(idx + 1);
+          });
+
+          slot.appendChild(starterZone);
+          slot.appendChild(subsZone);
+          lineEl.appendChild(slot);
+        });
+
+        pitch.appendChild(lineEl);
+      });
+    }
+
+    function render() { renderPitch(); renderSidebar(); }
+
+    [benchDrop, document.getElementById('sidebarDropZone')].forEach(el => {
+      el.addEventListener('dragover', e => { e.preventDefault(); benchDrop.classList.add('drop-active'); });
+      el.addEventListener('dragleave', () => benchDrop.classList.remove('drop-active'));
+      el.addEventListener('drop', e => {
+        e.preventDefault(); benchDrop.classList.remove('drop-active');
+        const payload = parsePayload(e); if (!payload || !playerMap.has(payload.playerId)) return;
+        removePlayerFromAll(payload.playerId); render();
+      });
+    });
+
+    formationSelect.addEventListener('change', () => {
+      state.formation = formationSelect.value;
+      state.slots = createEmptySlots(state.formation);
+      render();
+    });
+
+    async function loadLineupFromServer() {
+      try {
+        const res = await fetch(`/api/lineup/${scheduleId}`);
+        if (!res.ok) throw new Error('not found');
+        const data = await res.json();
+        state.formation = FORMATIONS[data.formation] ? data.formation : '4-3-3';
+        state.slots = createEmptySlots(state.formation);
+
+        Object.entries(data.slots || {}).forEach(([slotKey, ids]) => {
+          if (!state.slots[slotKey]) return;
+          const valid = (Array.isArray(ids) ? ids : []).map(String).filter(id => playerMap.has(id));
+          state.slots[slotKey].starter = valid[0] || null;
+          state.slots[slotKey].subs = valid.slice(1);
+        });
+      } catch {
+        state.formation = '4-3-3';
+        state.slots = createEmptySlots(state.formation);
+      }
+      formationSelect.value = state.formation;
+      render();
+    }
+
+    function toServerSlots() {
+      const out = {};
+      Object.entries(state.slots).forEach(([k, slot]) => {
+        out[k] = [slot.starter, ...slot.subs].filter(Boolean).map(Number);
+      });
+      return out;
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const payload = { date: scheduleId, formation: state.formation, slots: toServerSlots() };
+      const res = await fetch('/api/lineup/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      alert(res.ok ? 'Đã lưu lineup lên server.' : 'Lưu lineup thất bại.');
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      if (!confirm('Reset toàn bộ lineup hiện tại?')) return;
+      state.slots = createEmptySlots(state.formation);
+      render();
+    });
+
+    function normalizeStadium(name) {
+      return (name || '')
+        .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toUpperCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^A-Z0-9_]/g, '');
+    }
+
+    document.getElementById('saveImageBtn').addEventListener('click', async () => {
+      const target = document.querySelector('.workspace');
+      const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: null });
+      const link = document.createElement('a');
+      const dateRaw = '{{ schedule.date }}';
+      const [y,m,d] = dateRaw.split('-');
+      const datePart = `${d || '00'}${m || '00'}${y || '0000'}`;
+      const stadiumPart = normalizeStadium('{{ schedule.field }}') || 'STADIUM';
+      link.download = `${datePart}_${stadiumPart}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    loadLineupFromServer();
+
 
     function createEmptySlots(formationName) {
       const slots = {};
@@ -1020,6 +1262,7 @@
 
       render();
     })();
+
 
   </script>
 </body>

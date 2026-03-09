@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory
 import json, os, time, base64, requests, threading
 from datetime import datetime
 import pytz
@@ -17,6 +17,28 @@ LOCK_DURATION = 120  # giây, global duy nhất
 from gdrive_utils import download_db, upload_db, download_announcements, upload_announcements
 
 app = Flask(__name__)
+
+def ensure_runtime_storage():
+    """Đảm bảo db.json và uploads tồn tại khi chạy trên môi trường mới."""
+    if not os.path.exists(DB_FILE):
+        default_data = {
+            "players": [],
+            "schedule": [],
+            "schedules": [],
+            "lineups": []
+        }
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_data, f, ensure_ascii=False, indent=2)
+
+    os.makedirs("uploads", exist_ok=True)
+
+    keep_file = os.path.join("uploads", ".keep")
+    if not os.path.exists(keep_file):
+        with open(keep_file, "w", encoding="utf-8") as f:
+            f.write("")
+
+
+ensure_runtime_storage()
 
 def load_data_from_drive():
     """
@@ -154,7 +176,16 @@ def load_data(force_refresh=False, use_drive=False):
     try:
         with open(DB_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
+            # Tương thích cấu trúc cũ/mới
+            if "schedules" not in data and "schedule" in data:
+                data["schedules"] = data.get("schedule", [])
+            if "schedule" not in data and "schedules" in data:
+                data["schedule"] = data.get("schedules", [])
+            if isinstance(data.get("lineups"), list):
+                data["lineups"] = {}
+
             data.setdefault("schedules", [])
+            data.setdefault("schedule", data.get("schedules", []))
             data.setdefault("players", [])
             data.setdefault("lineups", {})
             _data_cache = data
@@ -683,6 +714,10 @@ def coach_mode(date):
         all_joined_players=joined_players
     )
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory('uploads', filename)
+
 # ================== STATIC PAGES ==================
 @app.route("/about.html")
 def about():
@@ -805,6 +840,12 @@ def upload_avatar(player_id):
     if ext not in mime_map:
         return "Định dạng ảnh không hợp lệ", 400
 
+
+    os.makedirs('uploads', exist_ok=True)
+    filename = f"player_{player_id}_{int(time.time())}{ext}"
+    save_path = os.path.join('uploads', filename)
+    file.save(save_path)
+
     raw = file.read()
     if not raw:
         return "File rỗng", 400
@@ -812,10 +853,15 @@ def upload_avatar(player_id):
     encoded = base64.b64encode(raw).decode('utf-8')
     data_url = f"data:{mime_map[ext]};base64,{encoded}"
 
+
     data = load_data()
     player = next((p for p in data.get('players', []) if p.get('id') == player_id), None)
     if player:
+
+        player['avatar'] = f"/uploads/{filename}"
+
         player['avatar'] = data_url
+
         save_data(data)
 
     return redirect(url_for('admin_players'))
@@ -987,6 +1033,7 @@ def seasons():
     return render_template("seasons.html", seasons=seasons_stats)
 
 if __name__ == "__main__":
+    ensure_runtime_storage()
     init_db_from_drive()
     try:
         init_announcements_from_drive()

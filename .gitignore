@@ -32,3 +32,10 @@ static/uploads/*
 *.gif
 *.db
 *.sqlite
+
+
+# Root uploads runtime folder
+uploads/*
+!uploads/.keep
+
+
