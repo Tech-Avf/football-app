@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory
 import json, os, time, base64, requests, threading
 from datetime import datetime
 import pytz
@@ -17,6 +17,28 @@ LOCK_DURATION = 120  # giây, global duy nhất
 from gdrive_utils import download_db, upload_db, download_announcements, upload_announcements
 
 app = Flask(__name__)
+
+def ensure_runtime_storage():
+    """Đảm bảo db.json và uploads tồn tại khi chạy trên môi trường mới."""
+    if not os.path.exists(DB_FILE):
+        default_data = {
+            "players": [],
+            "schedule": [],
+            "schedules": [],
+            "lineups": []
+        }
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_data, f, ensure_ascii=False, indent=2)
+
+    os.makedirs("uploads", exist_ok=True)
+
+    keep_file = os.path.join("uploads", ".keep")
+    if not os.path.exists(keep_file):
+        with open(keep_file, "w", encoding="utf-8") as f:
+            f.write("")
+
+
+ensure_runtime_storage()
 
 def load_data_from_drive():
     """
@@ -154,7 +176,16 @@ def load_data(force_refresh=False, use_drive=False):
     try:
         with open(DB_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
+            # Tương thích cấu trúc cũ/mới
+            if "schedules" not in data and "schedule" in data:
+                data["schedules"] = data.get("schedule", [])
+            if "schedule" not in data and "schedules" in data:
+                data["schedule"] = data.get("schedules", [])
+            if isinstance(data.get("lineups"), list):
+                data["lineups"] = {}
+
             data.setdefault("schedules", [])
+            data.setdefault("schedule", data.get("schedules", []))
             data.setdefault("players", [])
             data.setdefault("lineups", {})
             _data_cache = data
@@ -359,9 +390,9 @@ def register(date):
 
     # ----------- Xử lý POST (người bấm nút lưu) -----------
     if request.method == "POST":
-        for player in players:
-            pid = str(player["id"])
-            current = statuses.get(pid, {})
+        # Chỉ cập nhật những người đã thuộc status của buổi này để tránh
+        # tự động thêm thành viên mới vào các schedule cũ.
+        for pid, current in list(statuses.items()):
             lock_time = current.get("locked_at", 0)
             is_player_locked = bool(lock_time and (now - lock_time >= LOCK_DURATION))
 
@@ -412,8 +443,15 @@ def register(date):
         except (ValueError, TypeError):
             return 9999  # nếu không có số thứ tự, cho ra cuối
    
-    # Sắp xếp players theo số thứ tự (number)
-    players_sorted = sorted(players, key=safe_stt)
+    # Chỉ hiển thị người đang có trong danh sách đăng ký của buổi này
+    # (không lọc theo deleted để giữ nguyên dữ liệu lịch sử)
+    registered_players = [
+        p for p in players
+        if str(p.get("id")) in statuses
+    ]
+
+    # Sắp xếp players theo số thứ tự (stt)
+    players_sorted = sorted(registered_players, key=safe_stt)
 
     return render_template(
         "register.html",
@@ -490,13 +528,16 @@ def create():
             locked_at_local = vn_tz.localize(locked_at_naive)
             locked_at = int(locked_at_local.astimezone(pytz.utc).timestamp())
 
+        # Danh sách đăng ký của buổi mới phải lấy từ quản lý thành viên hiện tại
+        # (chỉ gồm thành viên còn hoạt động, không lấy từ buổi đăng ký trước đó)
+        active_players = [p for p in data.get("players", []) if not p.get("deleted")]
         status = {
             str(player["id"]): {
                 "state": "",
                 "note": "",
                 "reason": "",
                 "locked_at": 0
-            } for player in data.get("players", [])
+            } for player in active_players
         }
 
         data["schedules"].append({
@@ -520,13 +561,10 @@ def create():
 def admin_players():
     data = load_data()
     players = data.get("players", [])
-    schedules = data.get("schedules", [])
-    today = datetime.now().date()
 
     if request.method == "POST":
         print("==> FORM:", request.form)
         form_keys = list(request.form.keys())
-        new_players = []
 
         # --- Cập nhật thông tin cầu thủ cũ ---
         for p in players:
@@ -547,33 +585,14 @@ def admin_players():
                 "number": int(request.form.get("new_number", 0) or 0),
                 "position": ",".join(request.form.getlist("new_position")),
                 "stt": int(request.form.get("new_stt", 0) or 0),
+                "avatar": "/static/avatar-default.svg",
                 "deleted": False
             }
             players.append(new_player)
-            new_players.append(new_player)
 
-        # --- Thêm cầu thủ mới vào TRẬN TƯƠNG LAI chưa có kết quả ---
-        for s in schedules:
-            match_date_str = s.get("date", "")
-            result = s.get("result", None)
-            try:
-                match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
-            except Exception:
-                continue
-
-            # ❌ Bỏ qua trận cũ hoặc đã có kết quả
-            if match_date < today or result:
-                continue
-
-            # ✅ Thêm cầu thủ mới vào trận sắp tới
-            s.setdefault("status", {})
-            for np in new_players:
-                s["status"][str(np["id"])] = {
-                    "state": "",
-                    "note": "",
-                    "reason": "",
-                    "locked_at": 0
-                }
+        # Không tự động thêm cầu thủ mới vào các schedule đã tồn tại.
+        # Cầu thủ mới chỉ xuất hiện trong schedule tạo mới (/create)
+        # hoặc khi admin chủ động thêm vào từng buổi.
 
         data["players"] = players
         save_data(data)
@@ -587,29 +606,11 @@ def admin_players():
 def delete_player(player_id):
     data = load_data()
     players = data.get("players", [])
-    schedules = data.get("schedules", [])
-    today = datetime.now().date()
 
-    # Ẩn cầu thủ (không xóa hoàn toàn)
+    # Ẩn cầu thủ trong danh sách quản lý thành viên (không xoá khỏi các schedule đã có)
     deleted_player = next((p for p in players if p["id"] == player_id), None)
     if deleted_player:
         deleted_player["deleted"] = True
-
-    # Xóa khỏi các trận tương lai chưa có kết quả
-    for s in schedules:
-        match_date_str = s.get("date", "")
-        result = s.get("result", None)
-        try:
-            match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
-        except Exception:
-            continue
-
-        # ❌ Bỏ qua trận đã diễn ra hoặc đã có kết quả
-        if match_date < today or result:
-            continue
-
-        # ✅ Xóa khỏi các trận tương lai chưa có kết quả
-        s.get("status", {}).pop(str(player_id), None)
 
     data["players"] = players
     save_data(data)
@@ -699,8 +700,12 @@ def coach_mode(date):
                     "id": player["id"],
                     "name": player["name"],
                     "number": player["number"],
-                    "position": player["position"]
+                    "position": player["position"],
+                    "avatar": player.get("avatar", "/static/avatar-default.svg")
                 })
+
+    for p in joined_players:
+        p.setdefault("avatar", "/static/avatar-default.svg")
 
     return render_template(
         "coach_mode.html",
@@ -708,6 +713,10 @@ def coach_mode(date):
         players_by_position=players_by_position,
         all_joined_players=joined_players
     )
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory('uploads', filename)
 
 # ================== STATIC PAGES ==================
 @app.route("/about.html")
@@ -769,19 +778,102 @@ def toggle_popup(index):
     return redirect(url_for('announcements', admin=1))
 
 # ================== LINEUP ==================
+@app.route('/api/lineup/<date>')
+def api_get_lineup(date):
+    data = load_data()
+    schedule = next((s for s in data.get("schedules", []) if s.get("id") == date or s.get("date") == date), None)
+    if not schedule:
+        return jsonify({"formation": "4-3-3", "slots": {}}), 404
+
+    lineup = schedule.get("lineup")
+    if not lineup:
+        # fallback tương thích cũ
+        lineup = data.get("lineups", {}).get(date, {})
+
+    return jsonify({
+        "formation": lineup.get("formation", "4-3-3") if isinstance(lineup, dict) else "4-3-3",
+        "slots": lineup.get("slots", {}) if isinstance(lineup, dict) else {}
+    })
+
+
+@app.route('/api/lineup/save', methods=['POST'])
+def api_save_lineup():
+    payload = request.get_json(silent=True) or {}
+    date = payload.get("date")
+    formation = payload.get("formation", "4-3-3")
+    slots = payload.get("slots", {})
+
+    if not date:
+        return jsonify({"error": "missing date"}), 400
+
+    data = load_data()
+    schedule = next((s for s in data.get("schedules", []) if s.get("id") == date or s.get("date") == date), None)
+    if not schedule:
+        return jsonify({"error": "schedule not found"}), 404
+
+    schedule["lineup"] = {
+        "formation": formation,
+        "slots": slots
+    }
+
+    # giữ tương thích ngược nếu code cũ còn đọc key lineups
+    data.setdefault("lineups", {})
+    data["lineups"][date] = schedule["lineup"]
+
+    save_data(data)
+    return jsonify({"status": "ok"})
+
+
+@app.route('/admin/upload_avatar/<int:player_id>', methods=['POST'])
+def upload_avatar(player_id):
+    file = request.files.get('avatar')
+    if not file or not file.filename:
+        return redirect(url_for('admin_players'))
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    mime_map = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp'
+    }
+    if ext not in mime_map:
+        return "Định dạng ảnh không hợp lệ", 400
+
+    os.makedirs('uploads', exist_ok=True)
+    filename = f"player_{player_id}_{int(time.time())}{ext}"
+    save_path = os.path.join('uploads', filename)
+    file.save(save_path)
+
+    data = load_data()
+    player = next((p for p in data.get('players', []) if p.get('id') == player_id), None)
+    if player:
+        player['avatar'] = f"/uploads/{filename}"
+        save_data(data)
+
+    return redirect(url_for('admin_players'))
+
+
+# backward compatibility routes
 @app.route('/get_lineup/<schedule_id>')
 def get_lineup(schedule_id):
-    data = load_data()
-    lineup = data.get('lineups', {}).get(schedule_id, {})
-    return jsonify(lineup)
+    return api_get_lineup(schedule_id)
+
 
 @app.route('/save_lineup/<schedule_id>', methods=['POST'])
 def save_lineup(schedule_id):
-    lineup_data = request.json
+    payload = request.get_json(silent=True) or {}
     data = load_data()
-    if 'lineups' not in data:
-        data['lineups'] = {}
-    data['lineups'][schedule_id] = lineup_data
+    schedule = next((s for s in data.get("schedules", []) if s.get("id") == schedule_id or s.get("date") == schedule_id), None)
+    if not schedule:
+        return jsonify({"error": "schedule not found"}), 404
+
+    schedule["lineup"] = {
+        "formation": payload.get("formation", "4-3-3"),
+        "slots": payload.get("slots", {})
+    }
+    data.setdefault("lineups", {})
+    data["lineups"][schedule_id] = schedule["lineup"]
     save_data(data)
     return jsonify({'status': 'ok'})
 
@@ -928,6 +1020,7 @@ def seasons():
     return render_template("seasons.html", seasons=seasons_stats)
 
 if __name__ == "__main__":
+    ensure_runtime_storage()
     init_db_from_drive()
     try:
         init_announcements_from_drive()
