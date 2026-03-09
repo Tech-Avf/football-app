@@ -840,15 +840,28 @@ def upload_avatar(player_id):
     if ext not in mime_map:
         return "Định dạng ảnh không hợp lệ", 400
 
+
     os.makedirs('uploads', exist_ok=True)
     filename = f"player_{player_id}_{int(time.time())}{ext}"
     save_path = os.path.join('uploads', filename)
     file.save(save_path)
 
+    raw = file.read()
+    if not raw:
+        return "File rỗng", 400
+
+    encoded = base64.b64encode(raw).decode('utf-8')
+    data_url = f"data:{mime_map[ext]};base64,{encoded}"
+
+
     data = load_data()
     player = next((p for p in data.get('players', []) if p.get('id') == player_id), None)
     if player:
+
         player['avatar'] = f"/uploads/{filename}"
+
+        player['avatar'] = data_url
+
         save_data(data)
 
     return redirect(url_for('admin_players'))
