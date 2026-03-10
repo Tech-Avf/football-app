@@ -825,6 +825,8 @@ def api_save_lineup():
     return jsonify({"status": "ok"})
 
 
+import base64
+
 @app.route('/admin/upload_avatar/<int:player_id>', methods=['POST'])
 def upload_avatar(player_id):
     file = request.files.get('avatar')
@@ -838,31 +840,23 @@ def upload_avatar(player_id):
         '.jpeg': 'image/jpeg',
         '.webp': 'image/webp'
     }
+
     if ext not in mime_map:
         return "Định dạng ảnh không hợp lệ", 400
 
-    os.makedirs(os.path.join('static', 'uploads', 'players'), exist_ok=True)
     data = load_data()
     player = next((p for p in data.get('players', []) if p.get('id') == player_id), None)
 
-    if player and player.get('name'):
-        safe_name = "_".join(player.get('name', '').strip().lower().split())
-    else:
-        safe_name = f"player_{player_id}"
-
-    filename = f"{safe_name}_{player_id}{ext}"
-    save_path = os.path.join('static', 'uploads', 'players', filename)
-    file.save(save_path)
+    image_bytes = file.read()
+    encoded = base64.b64encode(image_bytes).decode('utf-8')
+    avatar_base64 = f"data:{mime_map[ext]};base64,{encoded}"
 
     if player:
-        player['avatar_url'] = f"/static/uploads/players/{filename}"
-        player['avatar'] = player['avatar_url']  # tương thích dữ liệu cũ
+        player['avatar'] = avatar_base64
+        player['avatar_url'] = avatar_base64
         save_data(data)
 
     return redirect(url_for('admin_players'))
-
-
-# backward compatibility routes
 @app.route('/get_lineup/<schedule_id>')
 def get_lineup(schedule_id):
     return api_get_lineup(schedule_id)
