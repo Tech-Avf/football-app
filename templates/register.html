@@ -115,7 +115,7 @@ textarea {
 </head>
 <body>
 <div class="watermark-logo">
-  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Watermark">
+  <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Logo Watermark">
 </div>
   <div class="container">
     <div class="content-wrapper">
@@ -180,7 +180,6 @@ textarea {
             {% set pstatus = statuses.get(pid, {}) %}
             {% set locked = (not admin) and (pstatus.get('locked_at', 0) and (now - pstatus.get('locked_at', 0) >= lock_duration)) %}
             {% set is_late = now > locked_at_global and (not pstatus.state) %}
-            {% if pid in statuses %}
             <tr class="{% if locked or is_locked %}locked{% endif %}{% if is_late %} late{% endif %}">
               <td>{{ loop.index }}</td>
               <td>{{ player.name }}</td>
@@ -209,12 +208,16 @@ textarea {
               </td>
               {% if admin %}
               <td>
-                <form id="remove-form-{{ pid }}" method="POST" action="{{ url_for('remove_player_from_session', date=schedule.id, player_id=player.id) }}?admin=1"></form>
-                <button type="submit" form="remove-form-{{ pid }}" onclick="return confirm('Bạn có chắc muốn xoá người này khỏi buổi đá này không?');" style="background-color: red; color: white; border: none; padding: 2px 6px; border-radius: 4px; font-size: 12px;">X</button>
+                <button
+                  type="submit"
+                  formaction="{{ url_for('remove_player_from_session', date=schedule.id, player_id=player.id) }}?admin=1"
+                  formmethod="POST"
+                  onclick="return confirm('Bạn có chắc muốn xoá người này khỏi buổi đá này không?');"
+                  style="background-color: red; color: white; border: none; padding: 2px 6px; border-radius: 4px; font-size: 12px;"
+                >X</button>
               </td>
               {% endif %}
             </tr>
-            {% endif %}
             {% endfor %}
           </tbody>
           <tfoot>

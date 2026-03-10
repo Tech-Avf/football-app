@@ -19,17 +19,22 @@
         .btn-save { background: #28a745; color: white; font-weight: bold; }
         .btn-add { background: #17a2b8; color: white; font-weight: bold; }
         .btn-delete { background: #dc3545; color: white; }
+        .btn-upload { background: #ffc107; color: #333; }
         .btn-back { background: #6c757d; color: white; margin-right: 10px; }
         .btn-save:hover { background: #218838; }
         .btn-add:hover { background: #138496; }
         .btn-delete:hover { background: #c82333; }
+        .btn-upload:hover { background: #e0a800; }
         .btn-back:hover { background: #5a6268; }
+        .avatar-thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 50%; border: 1px solid #ccc; }
+        .avatar-controls { display: grid; gap: 6px; justify-items: center; }
+        .avatar-controls input[type="file"] { width: 180px; font-size: 12px; }
     </style>
 </head>
 <body>
     <h2>⚙️ Quản lý thành viên đội bóng</h2>
 
-    <form method="POST" action="{{ url_for('admin_players') }}">
+    <form id="players-form" method="POST" action="{{ url_for('admin_players') }}">
         <table>
             <thead>
                 <tr>
@@ -37,6 +42,7 @@
                     <th>Tên cầu thủ</th>
                     <th>Số áo</th>
                     <th>Vị trí</th>
+                    <th>Avatar</th>
                     <th>Hành động</th>
                 </tr>
             </thead>
@@ -56,9 +62,15 @@
                         </select>
                     </td>
                     <td>
-                        <form method="POST" action="{{ url_for('delete_player', player_id=p.id) }}" style="display:inline;">
-                            <button type="submit" class="btn-delete" onclick="return confirm('Xóa cầu thủ {{p.name}}?')">🗑</button>
-                        </form>
+                        <div class="avatar-controls">
+                            <img class="avatar-thumb" src="{{ p.get('avatar_url') or p.get('avatar', '/static/avatar-default.svg') }}" onerror="this.src='/static/avatar-default.svg'" alt="avatar">
+                            <form id="avatar-form-{{p.id}}" method="POST" action="{{ url_for('upload_avatar', player_id=p.id) }}" enctype="multipart/form-data"></form>
+                            <input type="file" name="avatar" accept="image/*" form="avatar-form-{{p.id}}">
+                            <button type="submit" class="btn-upload" form="avatar-form-{{p.id}}">Upload Avatar</button>
+                        </div>
+                    </td>
+                    <td>
+                        <button type="submit" class="btn-delete" form="players-form" formaction="{{ url_for('delete_player', player_id=p.id) }}" formmethod="POST" onclick="return confirm('Xóa cầu thủ {{p.name}}?')">🗑</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -74,51 +86,36 @@
 
     <script>
         $(document).ready(function() {
-            $('.position-select').select2({
-                placeholder: "Chọn vị trí...",
-                allowClear: true,
-                width: 'resolve'
-            });
+            function initSelect() {
+              $('.position-select').select2({
+                  placeholder: "Chọn vị trí...",
+                  allowClear: true,
+                  width: 'resolve'
+              });
+            }
+            initSelect();
 
             $("#add-player").click(function() {
-                const newId = Date.now(); // ID tạm thời duy nhất
                 const row = `
                     <tr>
-                      <td>+</td>
+                      <td><input type="number" name="new_stt" placeholder="STT"></td>
                       <td><input type="text" name="new_name" placeholder="Tên cầu thủ" required></td>
                       <td><input type="number" name="new_number" placeholder="Số áo"></td>
                       <td>
-                        <select name="new_position" multiple>
-                          <option value="GK">GK</option>
-                          <option value="LB">LB</option>
-                          <option value="RB">RB</option>
-                          <option value="CB">CB</option>
-                          <option value="LW">LW</option>
-                          <option value="RW">RW</option>
-                          <option value="SS">SS</option>
-                          <option value="ST">ST</option>
-                          <option value="CF">CF</option>
-                          <option value="LM">LM</option>
-                          <option value="RM">RM</option>
-                          <option value="AM">AM</option>
-                          <option value="CM">CM</option>
-                          <option value="DM">DM</option>
-                          <option value="COACH">COACH</option>
-                          <option value="CLUB OWNER">CLUB OWNER</option>
-                          <option value="BHL">BHL</option>
+                        <select name="new_position" class="position-select" multiple>
+                          <option value="GK">GK</option><option value="LB">LB</option><option value="RB">RB</option>
+                          <option value="CB">CB</option><option value="LW">LW</option><option value="RW">RW</option>
+                          <option value="SS">SS</option><option value="ST">ST</option><option value="CF">CF</option>
+                          <option value="LM">LM</option><option value="RM">RM</option><option value="AM">AM</option>
+                          <option value="CM">CM</option><option value="DM">DM</option><option value="COACH">COACH</option>
+                          <option value="CLUB OWNER">CLUB OWNER</option><option value="BHL">BHL</option>
                         </select>
                       </td>
-                      <td><input type="number" name="new_stt" placeholder="STT"></td>
-                      <td><button type="submit">💾 Lưu</button></td>
-                    </tr>
-
-                `;
+                      <td><img class="avatar-thumb" src="/static/avatar-default.svg" alt="avatar"></td>
+                      <td>Chưa lưu</td>
+                    </tr>`;
                 $("#players-table").append(row);
-                $('.position-select').select2({
-                    placeholder: "Chọn vị trí...",
-                    allowClear: true,
-                    width: 'resolve'
-                });
+                initSelect();
             });
         });
     </script>

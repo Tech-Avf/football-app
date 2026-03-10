@@ -15,3 +15,26 @@ key.json
 
 # Bỏ qua file test cục bộ
 test_*.py
+
+# Runtime uploads (do not commit binaries)
+static/uploads/*
+!static/uploads/.gitkeep
+!static/uploads/avatars/
+!static/uploads/avatars/.gitkeep
+!static/uploads/lineups/
+!static/uploads/lineups/.gitkeep
+!static/uploads/players/
+!static/uploads/players/.gitkeep
+
+# Disallow binary image/database artifacts
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.db
+*.sqlite
+
+# Root uploads runtime folder
+uploads/*
+!uploads/.keep
